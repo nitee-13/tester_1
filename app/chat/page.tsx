@@ -6,6 +6,7 @@ import { Files, SendHorizontal, Trash2 } from "lucide-react";
 import styles from "./chat.module.css";
 import { useSources } from "@/context/SourcesContext";
 import { v4 as uuidv4 } from 'uuid';
+import { Typewriter } from "react-simple-typewriter";
 
 type Message = {
   sender: "user" | "bot";
@@ -127,7 +128,17 @@ export default function Chat() {
         ))}
         {messages.length === 0 && (
           <div className={styles.emptyMessages}>
-            <p className={styles.emptyText}>No messages yet</p>
+            <p className={styles.emptyText}>
+              <Typewriter
+                words={['Welcome to Legal Document Analyzer']}
+                loop={1}
+                cursor
+                cursorStyle='|'
+                typeSpeed={70}
+                deleteSpeed={50}
+                delaySpeed={1000}
+              />
+            </p>
           </div>
         )}
         <div ref={messagesEndRef} />
