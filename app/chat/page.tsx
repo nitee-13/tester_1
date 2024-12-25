@@ -47,6 +47,7 @@ export default function Chat() {
           name: file.name,
           uploadTime: new Date(),
         }));
+        console.log("newSources", newSources)
         addSources(newSources);
       }
 
@@ -61,6 +62,7 @@ export default function Chat() {
           sender: "bot", 
           text: "This is a bot response." 
         };
+        console.log("[Chat] Adding botMessage", botMessage)
         setMessages((prev) => [...prev, botMessage]);
       }, 1000);
     }
@@ -74,17 +76,21 @@ export default function Chat() {
   };
 
   const handleFileClick = () => {
+    console.log("[Chat] handleFileClick")
     fileInputRef.current?.click();
   };
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
     if (files && files.length > 0) {
-      setSelectedFiles(Array.from(files));
+      const filesArray = Array.from(files);
+      console.log("[Chat] handleFileChange", filesArray)
+      setSelectedFiles(filesArray);
     }
   };
 
   const handleClearFiles = () => {
+    console.log("[Chat] Clearing Selected Files")
     setSelectedFiles([]);
     if (fileInputRef.current) {
       fileInputRef.current.value = '';

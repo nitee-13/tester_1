@@ -12,6 +12,8 @@ import {
   PieChart,
   Settings2,
   SquareTerminal,
+  FileText,
+  LucideIcon,
 } from "lucide-react"
 import {ModeToggle} from "@/components/toggle-mode"
 import { NavMain } from "@/components/nav-main"
@@ -26,6 +28,19 @@ import {
   SidebarRail,
 } from "@/components/ui/sidebar"
 
+import { useSources } from "@/context/SourcesContext"
+
+//Devinf NavType 
+type NavType = {
+  title: string
+  url: string
+  icon: LucideIcon
+  isActive?: boolean
+  items?: {
+    title: string
+    url: string
+  }[]
+}
 // This is sample data.
 const data = {
   user: {
@@ -160,15 +175,39 @@ const data = {
     },
   ],
 }
+// Function to create the sources navigation item
+const createSourcesNavItem = (sources: any[]) => ({
+  title: "Sources",
+  url: "#",
+  icon: FileText,
+  isActive: true,
+  items: sources.map(source => ({
+    title: source.name,
+    url: "#",
+  }))
+})
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
+  const { sources } = useSources()
+  React.useEffect(() => {
+    console.log("[AppSidebar] sources", sources)
+  }, [sources])
+    // Create a combined navigation array with Chat, Sources, and other items
+  const combinedNavItems = React.useMemo(() => {
+  const chatItem = data.navMain.find(item => item.title === "Chat") // Get the Chat item
+  const otherItems = data.navMain.filter(item => item.title !== "Chat")
+  const sourcesItem = createSourcesNavItem(sources);
+  console.log("[AppSidebar] combinedNavItems", [chatItem, sourcesItem, ...otherItems])
+    
+  return chatItem ? [chatItem, sourcesItem, ...otherItems] : [sourcesItem, ...otherItems]
+  }, [sources]) // Recreate when sources change
   return (
     <Sidebar collapsible="offcanvas" {...props}>
       <SidebarHeader>
         <TeamSwitcher teams={data.teams}   />
       </SidebarHeader>
       <SidebarContent>
-        <NavMain items={data.navMain} />
+        <NavMain items={combinedNavItems} />
         <NavProjects projects={data.projects} />
       </SidebarContent>
       <SidebarFooter>
