@@ -24,12 +24,25 @@
   margin-right: auto;
 }
 
+.messageThinking {
+  @apply mb-4 p-3 rounded-lg max-w-[80%] shadow-sm 
+    hover:shadow-md transition-shadow;
+  margin-right: auto;
+  background-color: rgba(var(--primary), 0.6);
+  backdrop-filter: blur(4px);
+}
+
 .messageContent {
   @apply flex flex-col;
 }
 
 .messageText {
   @apply text-sm text-secondary-foreground;
+}
+
+/* New class for thinking text */
+.thinkingText {
+  @apply italic text-gray-500; /* Makes text italic and gray */
 }
 
 .fileList {

@@ -1,5 +1,6 @@
 'use client';
 import * as React from "react";
+import { useEffect, useRef } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Files, SendHorizontal, Trash2 } from "lucide-react";
@@ -8,10 +9,24 @@ import { useSources } from "@/context/SourcesContext";
 import { v4 as uuidv4 } from 'uuid';
 import { Typewriter } from "react-simple-typewriter";
 
+const THINKING_PHRASES = [
+  "Analyzing Pdf",
+  "Extracting Sentences",
+  "Creating Chunk",
+  "Implementing Knowledge Graph",
+  "Generating Graph of Thoughts",
+  "Performing Contextual Analysis",
+  "Fact Checking with Neural Engine",
+  "Finalizing Ideas"
+];
+
+
+
 type Message = {
   sender: "user" | "bot";
   text: string;
   files?: File[];
+  isThinking?: boolean; //Done to generate thinking phrases
 };
 
 export default function Chat() {
@@ -20,6 +35,7 @@ export default function Chat() {
   const [selectedFiles, setSelectedFiles] = React.useState<File[]>([]);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
   const messagesEndRef = React.useRef<HTMLDivElement>(null);
+  const timeoutRef = useRef<NodeJS.Timeout[]>([]);
 
   const { addSources } = useSources();
 
@@ -31,8 +47,15 @@ export default function Chat() {
     scrollToBottom();
   }, [messages]);
 
+  React.useEffect(() => {
+        return () => {
+          timeoutRef.current.forEach((timeoutId) => clearTimeout(timeoutId));
+        };
+    }, []);
+
   const handleSend = () => {
     if (inputValue.trim() || selectedFiles.length > 0) {
+      console.log("[Chat] Starting message send process");
       const newMessage: Message = {
         sender: "user",
         text: inputValue.trim(),
@@ -57,15 +80,53 @@ export default function Chat() {
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
       }
+      //Add initial thinking message
+      const thinkingMessage: Message = {
+        sender: "bot",
+        text: THINKING_PHRASES[0],
+        isThinking: true
+      }
+      console.log("[Chat] Adding initial thinking message:", THINKING_PHRASES[0]);
+      setMessages((prev) => [...prev, thinkingMessage]);
 
-      setTimeout(() => {
-        const botMessage: Message = { 
-          sender: "bot", 
-          text: "This is a bot response." 
-        };
-        console.log("[Chat] Adding botMessage", botMessage)
-        setMessages((prev) => [...prev, botMessage]);
-      }, 1000);
+      const phraseDisplayTime = 3000; // 3 seconds per phrase
+      const totalThinkingTime = phraseDisplayTime * THINKING_PHRASES.length;
+
+      THINKING_PHRASES.forEach((phrase, index) => {
+        const timeoutId = setTimeout(() => {
+          console.log(`[Chat] Updating to thinking phrase ${index + 1}:`, phrase);
+          setMessages((prev) => {
+            const updatedMessages = [...prev];
+            const lastMessage = updatedMessages[updatedMessages.length - 1];
+            
+            if (lastMessage && lastMessage.isThinking) {
+              lastMessage.text = phrase;
+              console.log(`[Chat] Updated thinking message to: ${phrase}`);
+            }
+            return updatedMessages;
+          });
+        }, phraseDisplayTime * index);
+
+        timeoutRef.current.push(timeoutId);
+      });
+
+      // Separate timeout for the final bot response
+      const finalTimeoutId = setTimeout(() => {
+        console.log("[Chat] Adding final bot response");
+        setMessages((prev) => {
+          const messagesWithoutThinking = prev.filter(msg => !msg.isThinking);
+          return [
+            ...messagesWithoutThinking,
+            {
+              sender: "bot",
+              text: "This is a bot response.",
+              isThinking: false
+            }
+          ];
+        });
+      }, totalThinkingTime + 1000); // Add slight delay after last thinking phrase
+
+      timeoutRef.current.push(finalTimeoutId);
     }
   };
 
@@ -105,11 +166,40 @@ export default function Chat() {
           <div key={index} className={styles.messageWrapper}>
             <div
               className={
-                message.sender === "user" ? styles.messageUser : styles.messageBot
+                message.sender === "user" ? styles.messageUser : message.isThinking ? styles.messageThinking : styles.messageBot
               }
             >
               <div className={styles.messageContent}>
-                <p className={styles.messageText}>{message.text}</p>
+                <p className={`${styles.messageText} ${message.isThinking ? styles.thinkingText : ''}`}>
+                  {message.sender === "bot" ? (
+                    message.isThinking ? (
+                      <>
+                        {/* <span>{message.text}</span> */}
+                        <Typewriter
+                          key={message.text}
+                          words={[`${message.text}...`]}  // Just animate the ellipsis
+                          loop={0}
+                          cursor={true}
+                          cursorStyle='|'
+                          typeSpeed={50}
+                          deleteSpeed={200}
+                          delaySpeed={100}
+                        />
+                      </>
+                    ) : (
+                      <Typewriter
+                        words={[message.text]}
+                        loop={1}
+                        cursor={false}
+                        typeSpeed={30}
+                        deleteSpeed={50}
+                        delaySpeed={500}
+                      />
+                    )
+                  ) : (
+                    message.text
+                  )}
+                </p>
                 {message.files && message.files.length > 0 && (
                   <div className={styles.fileList}>
                     {message.files.map((file, fileIndex) => (
