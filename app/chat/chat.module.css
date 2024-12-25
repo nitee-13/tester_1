@@ -1,0 +1,93 @@
+.chatContainer {
+  @apply flex flex-col h-full w-full;
+}
+
+.messagesContainer {
+  @apply flex-1 overflow-y-auto mb-4 p-4 max-w-4xl mx-auto w-full
+    bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 flex flex-col;
+}
+
+.messageWrapper {
+  @apply w-full flex items-start;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.messageUser {
+  @apply mb-4 p-3 bg-secondary rounded-lg max-w-[80%] shadow-sm 
+    hover:shadow-md transition-shadow;
+  margin-left: auto;
+}
+
+.messageBot {
+  @apply mb-4 p-3 bg-primary rounded-lg max-w-[80%] shadow-sm 
+    hover:shadow-md transition-shadow;
+  margin-right: auto;
+}
+
+.messageContent {
+  @apply flex flex-col;
+}
+
+.messageText {
+  @apply text-sm text-secondary-foreground;
+}
+
+.fileList {
+  @apply mt-2;
+}
+
+.fileAttachment {
+  @apply text-xs text-blue-500;
+}
+
+.messageTime {
+  @apply text-xs text-muted-foreground mt-1 block;
+}
+
+.emptyMessages {
+  @apply h-full flex items-center justify-center;
+}
+
+.emptyText {
+  @apply text-muted-foreground text-sm;
+}
+
+.inputContainer {
+  @apply flex gap-2 items-center justify-center p-4 max-w-4xl mx-auto w-full
+    bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60;
+}
+
+.attachButton {
+  @apply shrink-0 hover:bg-secondary bg-transparent p-2 border-0 
+    transition-transform duration-200 ease-in-out hover:scale-125;
+}
+
+.messageInput {
+  @apply flex-1 max-w-2xl focus-visible:ring-0 border-0 transition-transform duration-200 ease-in-out hover:scale-105;
+}
+
+.messageInput::placeholder {
+  @apply transition-opacity duration-200;
+}
+
+.messageInput:focus::placeholder {
+  @apply opacity-0;
+}
+
+.sendButton {
+  @apply shrink-0 bg-green-500 hover:bg-green-600 rounded-full p-2 
+    transition-transform duration-200 ease-in-out hover:scale-125;
+}
+
+.selectedFiles {
+  @apply flex flex-col mt-2;
+}
+
+.selectedFile {
+  @apply flex items-center justify-between bg-gray-100 p-2 rounded mb-1;
+}
+
+.deleteButton {
+  @apply ml-2 text-red-500 hover:text-red-700 hover:scale-125;
+  transition: transform 0.2s ease-in-out; /* smooth transition */
+}
