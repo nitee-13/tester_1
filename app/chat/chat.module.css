@@ -9,6 +9,10 @@
 
 .messageWrapper {
   @apply w-full flex items-start;
+}
+
+/* Only apply border to non-thinking messages */
+.messageWrapper:not(:has(.messageThinking)) {
   border-bottom: 1px solid rgba(255, 255, 255, 0.3);
 }
 
@@ -33,16 +37,42 @@
 }
 
 .messageContent {
-  @apply flex flex-col;
+  @apply w-full;
+}
+
+.textAndTimestamp {
+  @apply flex items-center w-full;
+}
+
+/* For user messages */
+.messageUser .textAndTimestamp {
+  flex-direction: row !important;
+}
+
+/* For bot messages */
+.messageBot .textAndTimestamp {
+  flex-direction: row-reverse !important;
 }
 
 .messageText {
   @apply text-sm text-secondary-foreground;
+  white-space: pre-wrap;
 }
 
-/* New class for thinking text */
+.messageTime {
+  @apply text-xs opacity-50 whitespace-nowrap inline-block;
+  min-width: 45px;
+}
+
+/* Remove any margins/padding that might cause vertical stacking */
+.timestampLeft,
+.timestampRight {
+  @apply m-0 p-0;
+}
+
 .thinkingText {
-  @apply italic text-gray-500; /* Makes text italic and gray */
+  @apply italic text-gray-500;
+  white-space: nowrap;
 }
 
 .fileList {
@@ -54,7 +84,7 @@
 }
 
 .messageTime {
-  @apply text-xs text-muted-foreground mt-1 block;
+  @apply text-xs opacity-50;
 }
 
 .emptyMessages {
@@ -102,5 +132,5 @@
 
 .deleteButton {
   @apply ml-2 text-red-500 hover:text-red-700 hover:scale-125;
-  transition: transform 0.2s ease-in-out; /* smooth transition */
+  transition: transform 0.2s ease-in-out;
 }

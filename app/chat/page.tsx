@@ -12,7 +12,7 @@ import { Typewriter } from "react-simple-typewriter";
 const THINKING_PHRASES = [
   "Analyzing Pdf",
   "Extracting Sentences",
-  "Creating Chunk",
+  "Creating Chunks",
   "Implementing Knowledge Graph",
   "Generating Graph of Thoughts",
   "Performing Contextual Analysis",
@@ -20,13 +20,12 @@ const THINKING_PHRASES = [
   "Finalizing Ideas"
 ];
 
-
-
 type Message = {
   sender: "user" | "bot";
   text: string;
   files?: File[];
-  isThinking?: boolean; //Done to generate thinking phrases
+  isThinking?: boolean; // Done to generate thinking phrases
+  timestamp: Date;
 };
 
 export default function Chat() {
@@ -48,10 +47,14 @@ export default function Chat() {
   }, [messages]);
 
   React.useEffect(() => {
-        return () => {
-          timeoutRef.current.forEach((timeoutId) => clearTimeout(timeoutId));
-        };
-    }, []);
+    return () => {
+      timeoutRef.current.forEach((timeoutId) => clearTimeout(timeoutId));
+    };
+  }, []);
+
+  const formatTimestamp = (date: Date) => {
+    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  };
 
   const handleSend = () => {
     if (inputValue.trim() || selectedFiles.length > 0) {
@@ -60,6 +63,7 @@ export default function Chat() {
         sender: "user",
         text: inputValue.trim(),
         files: selectedFiles.length > 0 ? [...selectedFiles] : undefined,
+        timestamp: new Date(),
       };
 
       setMessages((prev) => [...prev, newMessage]);
@@ -80,53 +84,63 @@ export default function Chat() {
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
       }
-      //Add initial thinking message
-      const thinkingMessage: Message = {
-        sender: "bot",
-        text: THINKING_PHRASES[0],
-        isThinking: true
-      }
-      console.log("[Chat] Adding initial thinking message:", THINKING_PHRASES[0]);
-      setMessages((prev) => [...prev, thinkingMessage]);
 
+      // Add initial delay before showing first thinking message
+      const initialDelay = 1000; // 1 second delay
       const phraseDisplayTime = 3000; // 3 seconds per phrase
-      const totalThinkingTime = phraseDisplayTime * THINKING_PHRASES.length;
 
-      THINKING_PHRASES.forEach((phrase, index) => {
-        const timeoutId = setTimeout(() => {
-          console.log(`[Chat] Updating to thinking phrase ${index + 1}:`, phrase);
-          setMessages((prev) => {
-            const updatedMessages = [...prev];
-            const lastMessage = updatedMessages[updatedMessages.length - 1];
-            
-            if (lastMessage && lastMessage.isThinking) {
-              lastMessage.text = phrase;
-              console.log(`[Chat] Updated thinking message to: ${phrase}`);
-            }
-            return updatedMessages;
-          });
-        }, phraseDisplayTime * index);
+      const initialTimeoutId = setTimeout(() => {
+        // Add initial thinking message
+        const thinkingMessage: Message = {
+          sender: "bot",
+          text: THINKING_PHRASES[0],
+          isThinking: true,
+          timestamp: new Date(),
+        }
+        console.log("[Chat] Adding initial thinking message:", THINKING_PHRASES[0]);
+        setMessages((prev) => [...prev, thinkingMessage]);
 
-        timeoutRef.current.push(timeoutId);
-      });
+        // Start the thinking phrases after the initial message
+        THINKING_PHRASES.forEach((phrase, index) => {
+          if (index === 0) return; // Skip first phrase as it's already shown
+          
+          const timeoutId = setTimeout(() => {
+            console.log(`[Chat] Updating to thinking phrase ${index + 1}:`, phrase);
+            setMessages((prev) => {
+              const updatedMessages = [...prev];
+              const lastMessage = updatedMessages[updatedMessages.length - 1];
+              
+              if (lastMessage && lastMessage.isThinking) {
+                lastMessage.text = phrase;
+                lastMessage.timestamp = new Date(); // Update timestamp if needed
+                console.log(`[Chat] Updated thinking message to: ${phrase}`);
+              }
+              return updatedMessages;
+            });
+          }, phraseDisplayTime * index);
 
-      // Separate timeout for the final bot response
-      const finalTimeoutId = setTimeout(() => {
-        console.log("[Chat] Adding final bot response");
-        setMessages((prev) => {
-          const messagesWithoutThinking = prev.filter(msg => !msg.isThinking);
-          return [
-            ...messagesWithoutThinking,
-            {
-              sender: "bot",
-              text: "This is a bot response.",
-              isThinking: false
-            }
-          ];
+          timeoutRef.current.push(timeoutId);
         });
-      }, totalThinkingTime + 1000); // Add slight delay after last thinking phrase
 
-      timeoutRef.current.push(finalTimeoutId);
+        // Separate timeout for the final bot response
+        const finalTimeoutId = setTimeout(() => {
+          console.log("[Chat] Adding final bot response");
+          setMessages((prev) => {
+            const messagesWithoutThinking = prev.filter(msg => !msg.isThinking);
+            return [
+              ...messagesWithoutThinking,
+              {
+                sender: "bot",
+                text: "This is a bot response.",
+                isThinking: false,
+                timestamp: new Date(),
+              }
+            ];
+          });
+        }, phraseDisplayTime * THINKING_PHRASES.length + 1000); // Add slight delay after last thinking phrase
+
+        timeoutRef.current.push(finalTimeoutId);
+      }, initialDelay);
     }
   };
 
@@ -166,18 +180,21 @@ export default function Chat() {
           <div key={index} className={styles.messageWrapper}>
             <div
               className={
-                message.sender === "user" ? styles.messageUser : message.isThinking ? styles.messageThinking : styles.messageBot
+                message.sender === "user" 
+                ? styles.messageUser 
+                : message.isThinking 
+                ? styles.messageThinking 
+                : styles.messageBot
               }
             >
               <div className={styles.messageContent}>
-                <p className={`${styles.messageText} ${message.isThinking ? styles.thinkingText : ''}`}>
-                  {message.sender === "bot" ? (
-                    message.isThinking ? (
-                      <>
-                        {/* <span>{message.text}</span> */}
+                <div className={styles.textAndTimestamp}>
+                  <p className={`${styles.messageText} ${message.isThinking ? styles.thinkingText : ''}`}>
+                    {message.sender === "bot" ? (
+                      message.isThinking ? (
                         <Typewriter
                           key={message.text}
-                          words={[`${message.text}...`]}  // Just animate the ellipsis
+                          words={[`${message.text}...`]}
                           loop={0}
                           cursor={true}
                           cursorStyle='|'
@@ -185,22 +202,22 @@ export default function Chat() {
                           deleteSpeed={200}
                           delaySpeed={100}
                         />
-                      </>
+                      ) : (
+                        <Typewriter
+                          words={[message.text]}
+                          loop={1}
+                          cursor={false}
+                          typeSpeed={30}
+                          deleteSpeed={50}
+                          delaySpeed={500}
+                        />
+                      )
                     ) : (
-                      <Typewriter
-                        words={[message.text]}
-                        loop={1}
-                        cursor={false}
-                        typeSpeed={30}
-                        deleteSpeed={50}
-                        delaySpeed={500}
-                      />
-                    )
-                  ) : (
-                    message.text
-                  )}
-                </p>
-                {message.files && message.files.length > 0 && (
+                      message.text
+                    )}
+                  </p>
+                </div>
+                {message.files && (
                   <div className={styles.fileList}>
                     {message.files.map((file, fileIndex) => (
                       <div key={fileIndex} className={styles.fileAttachment}>
@@ -209,9 +226,6 @@ export default function Chat() {
                     ))}
                   </div>
                 )}
-                <span className={styles.messageTime}>
-                  {new Date().toLocaleTimeString()}
-                </span>
               </div>
             </div>
           </div>
