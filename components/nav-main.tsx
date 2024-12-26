@@ -19,19 +19,24 @@ import {
   SidebarMenuSubItem,
 } from "@/components/ui/sidebar"
 
+type NavItemType = {
+  title: string
+  url: string
+  icon?: LucideIcon
+  isActive?: boolean
+  isSelected?: boolean
+  items?:{
+    title: string
+    url: string 
+    isSelected?: boolean
+    onClick?: () => void
+  }[]
+}
+
 export function NavMain({
   items,
 }: {
-  items: {
-    title: string
-    url: string
-    icon?: LucideIcon
-    isActive?: boolean
-    items?: {
-      title: string
-      url: string
-    }[]
-  }[]
+  items: NavItemType[]
 }) {
   return (
     <SidebarGroup>
@@ -58,10 +63,20 @@ export function NavMain({
                     <SidebarMenuSub>
                       {item.items?.map((subItem) => (
                         <SidebarMenuSubItem key={subItem.title}>
-                          <SidebarMenuSubButton asChild>
+                          <SidebarMenuSubButton 
+                          asChild
+                          className={subItem.isSelected ? "bg-accent" : ""}
+                          onClick={subItem.onClick}
+                          >
+                            {subItem.onClick ? (
+                              <button className="w-full h-full">
+                                <span>{subItem.title}</span>
+                              </button>
+                            ):(
                             <Link href={subItem.url}>
                               <span>{subItem.title}</span>
                             </Link>
+                            )}
                           </SidebarMenuSubButton>
                         </SidebarMenuSubItem>
                       ))}

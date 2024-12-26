@@ -8,6 +8,7 @@ import styles from "./chat.module.css";
 import { useSources } from "@/context/SourcesContext";
 import { v4 as uuidv4 } from 'uuid';
 import { Typewriter } from "react-simple-typewriter";
+import PdfViewer from "@/components/PdfViewer";
 
 const THINKING_PHRASES = [
   "Analyzing Pdf",
@@ -36,7 +37,13 @@ export default function Chat() {
   const messagesEndRef = React.useRef<HTMLDivElement>(null);
   const timeoutRef = useRef<NodeJS.Timeout[]>([]);
 
-  const { addSources } = useSources();
+
+
+  const { addSources, selectedSource, setSelectedSource } = useSources();
+  console.log("[Chat] selectedSource", selectedSource)
+    const handleClosePdf = () => {
+    setSelectedSource(null)
+  }
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -74,8 +81,9 @@ export default function Chat() {
           id: uuidv4(),
           name: file.name,
           uploadTime: new Date(),
+          url: URL.createObjectURL(file),
         }));
-        console.log("newSources", newSources)
+        console.log("[Chat] newSources", newSources)
         addSources(newSources);
       }
 
@@ -122,7 +130,7 @@ export default function Chat() {
           timeoutRef.current.push(timeoutId);
         });
 
-        // Separate timeout for the final bot response
+        // Add final bot response after all thinking phrases
         const finalTimeoutId = setTimeout(() => {
           console.log("[Chat] Adding final bot response");
           setMessages((prev) => {
@@ -137,10 +145,31 @@ export default function Chat() {
               }
             ];
           });
-        }, phraseDisplayTime * THINKING_PHRASES.length + 1000); // Add slight delay after last thinking phrase
+        }, phraseDisplayTime * THINKING_PHRASES.length + 500); // Slight delay after last thinking phrase
 
         timeoutRef.current.push(finalTimeoutId);
       }, initialDelay);
+
+      timeoutRef.current.push(initialTimeoutId);
+    }
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) {
+      setSelectedFiles(Array.from(e.target.files));
+    }
+  };
+
+  const handleFileClick = () => {
+    if (fileInputRef.current) {
+      fileInputRef.current.click();
+    }
+  };
+
+  const handleClearFiles = () => {
+    setSelectedFiles([]);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
     }
   };
 
@@ -151,110 +180,102 @@ export default function Chat() {
     }
   };
 
-  const handleFileClick = () => {
-    console.log("[Chat] handleFileClick")
-    fileInputRef.current?.click();
-  };
-
-  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const files = event.target.files;
-    if (files && files.length > 0) {
-      const filesArray = Array.from(files);
-      console.log("[Chat] handleFileChange", filesArray)
-      setSelectedFiles(filesArray);
-    }
-  };
-
-  const handleClearFiles = () => {
-    console.log("[Chat] Clearing Selected Files")
-    setSelectedFiles([]);
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
-    }
-  };
-
-  return (
+ return (
     <div className={styles.chatContainer}>
-      <div className={styles.messagesContainer} id="messagesContainer">
-        {messages.map((message, index) => (
-          <div key={index} className={styles.messageWrapper}>
-            <div
-              className={
-                message.sender === "user" 
-                ? styles.messageUser 
-                : message.isThinking 
-                ? styles.messageThinking 
-                : styles.messageBot
-              }
-            >
-              <div className={styles.messageContent}>
-                <div className={styles.textAndTimestamp}>
-                  <p className={`${styles.messageText} ${message.isThinking ? styles.thinkingText : ''}`}>
-                    {message.sender === "bot" ? (
-                      message.isThinking ? (
-                        <Typewriter
-                          key={message.text}
-                          words={[`${message.text}...`]}
-                          loop={0}
-                          cursor={true}
-                          cursorStyle='|'
-                          typeSpeed={50}
-                          deleteSpeed={200}
-                          delaySpeed={100}
-                        />
-                      ) : (
-                        <Typewriter
-                          words={[message.text]}
-                          loop={1}
-                          cursor={false}
-                          typeSpeed={30}
-                          deleteSpeed={50}
-                          delaySpeed={500}
-                        />
-                      )
-                    ) : (
-                      message.text
-                    )}
-                  </p>
-                </div>
-                {message.files && (
-                  <div className={styles.fileList}>
-                    {message.files.map((file, fileIndex) => (
-                      <div key={fileIndex} className={styles.fileAttachment}>
-                        📎 {file.name}
+      <div className={selectedSource ? "flex h-full w-full" : ""}>
+        {/* Chat Messages Section */}
+        <div className={selectedSource ? "w-1/2 h-full" : "w-full h-full"}>
+          <div className={styles.messagesContainer}>
+            {messages.map((message, index) => (
+              <div key={index} className={styles.messageWrapper}>
+                <div
+                  className={
+                    message.sender === "user" 
+                      ? styles.messageUser 
+                      : message.isThinking 
+                        ? styles.messageThinking 
+                        : styles.messageBot
+                  }
+                >
+                  <div className={styles.messageContent}>
+                    <div className={styles.textAndTimestamp}>
+                      <p className={`${styles.messageText} ${message.isThinking ? styles.thinkingText : ''}`}>
+                        {message.sender === "bot" ? (
+                          message.isThinking ? (
+                            <Typewriter
+                              key={message.text}
+                              words={[`${message.text}...`]}
+                              loop={0}
+                              cursor={true}
+                              cursorStyle='|'
+                              typeSpeed={50}
+                              deleteSpeed={200}
+                              delaySpeed={100}
+                            />
+                          ) : (
+                            <Typewriter
+                              words={[message.text]}
+                              loop={1}
+                              cursor={false}
+                              typeSpeed={30}
+                              deleteSpeed={50}
+                              delaySpeed={500}
+                            />
+                          )
+                        ) : (
+                          message.text
+                        )}
+                      </p>
+                    </div>
+                    {message.files && (
+                      <div className={styles.fileList}>
+                        {message.files.map((file, fileIndex) => (
+                          <div key={fileIndex} className={styles.fileAttachment}>
+                            📎 {file.name}
+                          </div>
+                        ))}
                       </div>
-                    ))}
+                    )}
                   </div>
-                )}
+                </div>
               </div>
-            </div>
+            ))}
+            {messages.length === 0 && (
+              <div className={styles.emptyMessages}>
+                <p className={styles.emptyText}>
+                  <Typewriter
+                    words={['Welcome to Legal Document Analyzer']}
+                    loop={1}
+                    cursor
+                    cursorStyle='|'
+                    typeSpeed={70}
+                    deleteSpeed={50}
+                    delaySpeed={1000}
+                  />
+                </p>
+              </div>
+            )}
+            <div ref={messagesEndRef} />
           </div>
-        ))}
-        {messages.length === 0 && (
-          <div className={styles.emptyMessages}>
-            <p className={styles.emptyText}>
-              <Typewriter
-                words={['Welcome to Legal Document Analyzer']}
-                loop={1}
-                cursor
-                cursorStyle='|'
-                typeSpeed={70}
-                deleteSpeed={50}
-                delaySpeed={1000}
-              />
-            </p>
+        </div>
+
+        {/* PDF Viewer Section */}
+        {selectedSource && (
+          <div className="w-1/2 h-full border-l border-gray-300">
+            <PdfViewer url={selectedSource.url} onClose={handleClosePdf} />
           </div>
         )}
-        <div ref={messagesEndRef} />
       </div>
 
-      <div className={styles.inputContainer}>
+      {/* Input Container - Always visible */}
+      <div className={`${styles.inputContainer} sticky bottom-0 bg-background`}>
         <input
           type="file"
           ref={fileInputRef}
           onChange={handleFileChange}
           className="hidden"
           multiple
+          accept="application/pdf"
         />
         <Button 
           variant="ghost"
@@ -295,4 +316,4 @@ export default function Chat() {
       </div>
     </div>
   );
-} 
+}

@@ -44,30 +44,9 @@
   @apply flex items-center w-full;
 }
 
-/* For user messages */
-.messageUser .textAndTimestamp {
-  flex-direction: row !important;
-}
-
-/* For bot messages */
-.messageBot .textAndTimestamp {
-  flex-direction: row-reverse !important;
-}
-
 .messageText {
   @apply text-sm text-secondary-foreground;
   white-space: pre-wrap;
-}
-
-.messageTime {
-  @apply text-xs opacity-50 whitespace-nowrap inline-block;
-  min-width: 45px;
-}
-
-/* Remove any margins/padding that might cause vertical stacking */
-.timestampLeft,
-.timestampRight {
-  @apply m-0 p-0;
 }
 
 .thinkingText {
@@ -83,10 +62,6 @@
   @apply text-xs text-blue-500;
 }
 
-.messageTime {
-  @apply text-xs opacity-50;
-}
-
 .emptyMessages {
   @apply h-full flex items-center justify-center;
 }
@@ -95,6 +70,7 @@
   @apply text-muted-foreground text-sm;
 }
 
+/* Hide input container when a PDF is selected */
 .inputContainer {
   @apply flex gap-2 items-center justify-center p-4 max-w-4xl mx-auto w-full
     bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60;

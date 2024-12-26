@@ -1,44 +1,39 @@
 "use client"
-import React, { createContext, useContext, useState, ReactNode, useEffect } from "react";
+import React, { createContext, useContext, useState } from "react";
 
 type Source = {
   id: string;
   name: string;
   uploadTime: Date;
+  url: string;
 };
+
+interface SourceContextType {
+  sources: Source[];
+  addSources: (newSources: Source[]) => void;
+  selectedSource: Source | null;
+  setSelectedSource: (source: Source | null) => void;
+}
 
 type SourcesContextType = {
   sources: Source[];
   addSources: (newSources: Source[]) => void;
+  selectedSource: Source | null;
+  setSelectedSource: (source: Source | null) => void;
 };
 
 const SourcesContext = createContext<SourcesContextType | undefined>(undefined);
 
-export const SourcesProvider = ({ children }: { children: ReactNode }) => {
+export const SourcesProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [sources, setSources] = useState<Source[]>([]);
-
-  // Log when the provider mounts
-  useEffect(() => {
-    console.log("[SourcesProvider] Mounted");
-    console.log("[SourcesProvider] Initial sources:", sources);
-  }, []);
+  const [selectedSource, setSelectedSource] = useState<Source | null>(null);
 
   const addSources = (newSources: Source[]) => {
-    console.log("[SourcesContext] addSources called with:", newSources);
-    setSources((prevSources) => {
-      const updatedSources = [...prevSources, ...newSources];
-      console.log("[SourcesContext] Updated sources:", updatedSources);
-      return updatedSources;
-    });
+    setSources((prev) => [...prev, ...newSources]);
   };
 
-  // Log whenever sources change
-  useEffect(() => {
-    console.log("[SourcesContext] Sources updated:", sources);
-  }, [sources]);
-
   return (
-    <SourcesContext.Provider value={{ sources, addSources }}>
+    <SourcesContext.Provider value={{ sources, addSources, selectedSource, setSelectedSource }}>
       {children}
     </SourcesContext.Provider>
   );
@@ -47,7 +42,7 @@ export const SourcesProvider = ({ children }: { children: ReactNode }) => {
 export const useSources = (): SourcesContextType => {
   const context = useContext(SourcesContext);
   if (!context) {
-    throw new Error("useSources must be used within a SourcesProvider");
+    throw new Error('useSources must be used within a SourcesProvider');
   }
   return context;
 }; 

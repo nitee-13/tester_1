@@ -176,7 +176,7 @@ const data = {
   ],
 }
 // Function to create the sources navigation item
-const createSourcesNavItem = (sources: any[]) => ({
+const createSourcesNavItem = (sources: any[], selectedSource: any, onSourceClick: (source: any) => void) => ({
   title: "Sources",
   url: "#",
   icon: FileText,
@@ -184,23 +184,35 @@ const createSourcesNavItem = (sources: any[]) => ({
   items: sources.map(source => ({
     title: source.name,
     url: "#",
+    isSelected: selectedSource ?.id === source.id,
+    onClick: () => onSourceClick(source)
   }))
 })
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
-  const { sources } = useSources()
+  const { sources,setSelectedSource, selectedSource } = useSources()
+  console.log("[AppSidebar] selectedSource", setSelectedSource)
+  console.log("[AppSidebar] sources", sources)
+  const handleSelectedSource = (source: any) => {
+    console.log("[AppSidebar] handleSelectedSource", source)
+    setSelectedSource(source)
+  }
   React.useEffect(() => {
     console.log("[AppSidebar] sources", sources)
   }, [sources])
+  const handleSourceClick = (source: any) => {
+    console.log("[AppSidebar] handleSourceClick", source)
+    setSelectedSource(source)
+  }
     // Create a combined navigation array with Chat, Sources, and other items
   const combinedNavItems = React.useMemo(() => {
   const chatItem = data.navMain.find(item => item.title === "Chat") // Get the Chat item
   const otherItems = data.navMain.filter(item => item.title !== "Chat")
-  const sourcesItem = createSourcesNavItem(sources);
+  const sourcesItem = createSourcesNavItem(sources, selectedSource, handleSourceClick);
   console.log("[AppSidebar] combinedNavItems", [chatItem, sourcesItem, ...otherItems])
     
   return chatItem ? [chatItem, sourcesItem, ...otherItems] : [sourcesItem, ...otherItems]
-  }, [sources]) // Recreate when sources change
+  }, [sources, selectedSource]) // Recreate when sources change
   return (
     <Sidebar collapsible="offcanvas" {...props}>
       <SidebarHeader>
