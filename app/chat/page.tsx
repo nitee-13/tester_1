@@ -95,7 +95,7 @@ export default function Chat() {
 
       // Add initial delay before showing first thinking message
       const initialDelay = 1000; // 1 second delay
-      const phraseDisplayTime = 3000; // 3 seconds per phrase
+      const phraseDisplayTime = 10; // 3 seconds per phrase
 
       const initialTimeoutId = setTimeout(() => {
         // Add initial thinking message
@@ -182,80 +182,132 @@ export default function Chat() {
 
  return (
     <div className={styles.chatContainer}>
-      <div className={selectedSource ? "flex h-full w-full" : ""}>
-        {/* Chat Messages Section */}
-        <div className={selectedSource ? "w-1/2 h-full" : "w-full h-full"}>
-          <div className={styles.messagesContainer}>
-            {messages.map((message, index) => (
-              <div key={index} className={styles.messageWrapper}>
-                <div
-                  className={
-                    message.sender === "user" 
-                      ? styles.messageUser 
-                      : message.isThinking 
-                        ? styles.messageThinking 
-                        : styles.messageBot
-                  }
-                >
-                  <div className={styles.messageContent}>
-                    <div className={styles.textAndTimestamp}>
-                      <p className={`${styles.messageText} ${message.isThinking ? styles.thinkingText : ''}`}>
-                        {message.sender === "bot" ? (
-                          message.isThinking ? (
-                            <Typewriter
-                              key={message.text}
-                              words={[`${message.text}...`]}
-                              loop={0}
-                              cursor={true}
-                              cursorStyle='|'
-                              typeSpeed={50}
-                              deleteSpeed={200}
-                              delaySpeed={100}
-                            />
+      <div className="h-full flex">
+        {/* Chat Section */}
+        <div className={selectedSource ? "w-1/2 flex flex-col" : "w-full flex flex-col"}>
+          {/* Messages and Input Container */}
+          <div className="flex flex-col h-full">
+            {/* Messages Container */}
+            <div className={`${styles.messagesContainer} flex-1 overflow-y-auto`}>
+              {messages.map((message, index) => (
+                <div key={index} className={styles.messageWrapper}>
+                  <div
+                    className={
+                      message.sender === "user" 
+                        ? styles.messageUser 
+                        : message.isThinking 
+                          ? styles.messageThinking 
+                          : styles.messageBot
+                    }
+                  >
+                    <div className={styles.messageContent}>
+                      <div className={styles.textAndTimestamp}>
+                        <p className={`${styles.messageText} ${message.isThinking ? styles.thinkingText : ''}`}>
+                          {message.sender === "bot" ? (
+                            message.isThinking ? (
+                              <Typewriter
+                                key={message.text}
+                                words={[`${message.text}...`]}
+                                loop={0}
+                                cursor={true}
+                                cursorStyle='|'
+                                typeSpeed={50}
+                                deleteSpeed={200}
+                                delaySpeed={100}
+                              />
+                            ) : (
+                              <Typewriter
+                                words={[message.text]}
+                                loop={1}
+                                cursor={false}
+                                typeSpeed={30}
+                                deleteSpeed={50}
+                                delaySpeed={500}
+                              />
+                            )
                           ) : (
-                            <Typewriter
-                              words={[message.text]}
-                              loop={1}
-                              cursor={false}
-                              typeSpeed={30}
-                              deleteSpeed={50}
-                              delaySpeed={500}
-                            />
-                          )
-                        ) : (
-                          message.text
-                        )}
-                      </p>
-                    </div>
-                    {message.files && (
-                      <div className={styles.fileList}>
-                        {message.files.map((file, fileIndex) => (
-                          <div key={fileIndex} className={styles.fileAttachment}>
-                            📎 {file.name}
-                          </div>
-                        ))}
+                            message.text
+                          )}
+                        </p>
                       </div>
-                    )}
+                      {message.files && (
+                        <div className={styles.fileList}>
+                          {message.files.map((file, fileIndex) => (
+                            <div key={fileIndex} className={styles.fileAttachment}>
+                              📎 {file.name}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
-            {messages.length === 0 && (
-              <div className={styles.emptyMessages}>
-                <p className={styles.emptyText}>
-                  <Typewriter
-                    words={['Welcome to Legal Document Analyzer']}
-                    loop={1}
-                    cursor
-                    cursorStyle='|'
-                    typeSpeed={70}
-                    deleteSpeed={50}
-                    delaySpeed={1000}
-                  />
-                </p>
-              </div>
-            )}
-            <div ref={messagesEndRef} />
+              ))}
+              {messages.length === 0 && (
+                <div className={styles.emptyMessages}>
+                  <p className={styles.emptyText}>
+                    <Typewriter
+                      words={['Welcome to Legal Document Analyzer']}
+                      loop={1}
+                      cursor
+                      cursorStyle='|'
+                      typeSpeed={70}
+                      deleteSpeed={50}
+                      delaySpeed={1000}
+                    />
+                  </p>
+                </div>
+              )}
+              <div ref={messagesEndRef} />
+            </div>
+
+            {/* Input Container */}
+            <div className={`${styles.inputContainer} bg-background`}>
+              <input
+                type="file"
+                ref={fileInputRef}
+                onChange={handleFileChange}
+                className="hidden"
+                multiple
+                accept="application/pdf"
+              />
+              <Button 
+                variant="ghost"
+                size="icon"
+                className={styles.attachButton}
+                onClick={handleFileClick}
+              >
+                <Files className="h-4 w-4" />
+              </Button>
+
+              {selectedFiles.length > 0 && (
+                <Button 
+                  variant="ghost"
+                  size="icon"
+                  className={styles.deleteButton}
+                  onClick={handleClearFiles}
+                >
+                  <Trash2 className="h-4 w-4 text-red-500" />
+                </Button>
+              )}
+              
+              <Input
+                value={inputValue}
+                onChange={(e) => setInputValue(e.target.value)}
+                onKeyDown={handleKeyPress}
+                placeholder={selectedFiles.length > 0 
+                  ? `${selectedFiles.length} file(s) selected. Type a message...` 
+                  : "Type your message..."}
+                className={styles.messageInput}
+              />
+              
+              <Button 
+                onClick={handleSend}
+                className={styles.sendButton}
+              >
+                <SendHorizontal className="h-4 w-4 text-white" />
+              </Button>
+            </div>
           </div>
         </div>
 
@@ -265,54 +317,6 @@ export default function Chat() {
             <PdfViewer url={selectedSource.url} onClose={handleClosePdf} />
           </div>
         )}
-      </div>
-
-      {/* Input Container - Always visible */}
-      <div className={`${styles.inputContainer} sticky bottom-0 bg-background`}>
-        <input
-          type="file"
-          ref={fileInputRef}
-          onChange={handleFileChange}
-          className="hidden"
-          multiple
-          accept="application/pdf"
-        />
-        <Button 
-          variant="ghost"
-          size="icon"
-          className={styles.attachButton}
-          onClick={handleFileClick}
-        >
-          <Files className="h-4 w-4" />
-        </Button>
-
-        {selectedFiles.length > 0 && (
-          <Button 
-            variant="ghost"
-            size="icon"
-            className={styles.deleteButton}
-            onClick={handleClearFiles}
-          >
-            <Trash2 className="h-4 w-4 text-red-500" />
-          </Button>
-        )}
-        
-        <Input
-          value={inputValue}
-          onChange={(e) => setInputValue(e.target.value)}
-          onKeyDown={handleKeyPress}
-          placeholder={selectedFiles.length > 0 
-            ? `${selectedFiles.length} file(s) selected. Type a message...` 
-            : "Type your message..."}
-          className={styles.messageInput}
-        />
-        
-        <Button 
-          onClick={handleSend}
-          className={styles.sendButton}
-        >
-          <SendHorizontal className="h-4 w-4 text-white" />
-        </Button>
       </div>
     </div>
   );
