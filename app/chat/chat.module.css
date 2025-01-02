@@ -73,12 +73,16 @@
 /* Hide input container when a PDF is selected */
 .inputContainer {
   @apply flex gap-2 items-center justify-center p-4 max-w-4xl mx-auto w-full
-    bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60;
+    bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60
+    bg-gray-900/90 rounded-t-2xl;
+  position: sticky;
+  bottom: 0;
 }
 
 .attachButton {
   @apply shrink-0 hover:bg-secondary bg-transparent p-2 border-0 
-    transition-transform duration-200 ease-in-out hover:scale-125;
+    transition-transform duration-200 ease-in-out hover:scale-110
+    text-white rounded-full px-6;
 }
 
 .messageInput {
@@ -109,4 +113,55 @@
 .deleteButton {
   @apply ml-2 text-red-500 hover:text-red-700 hover:scale-125;
   transition: transform 0.2s ease-in-out;
+}
+
+.askAIButton {
+  @apply bg-green-500 hover:bg-green-600 text-white flex items-center
+    rounded-full px-6 py-2 transition-transform duration-200 ease-in-out hover:scale-110
+    ml-auto 
+}
+
+.analysisHeading {
+  font-size: 1.5rem;
+  font-weight: bold;
+  margin-bottom: 1rem;
+  color: #f2eeee;
+}
+
+.sectionHeading {
+  font-size: 1.2rem;
+  font-weight: 600;
+  margin-top: 1rem;
+  margin-bottom: 0.5rem;
+  color: #9be0a7;
+}
+.redflagger{
+    font-size: 1.2rem;
+  font-weight: 600;
+  margin-top: 1.5rem;
+  margin-bottom: 1rem;
+  color: #830606;
+}
+
+.analysisContent {
+  padding-left: 1rem;
+  margin-bottom: 0.5rem;
+}
+
+.listItem {
+  margin-bottom: 0.5rem;
+  line-height: 1.4;
+}
+
+.typewriterContainer {
+  animation: fadeIn 0.5s ease-in;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }

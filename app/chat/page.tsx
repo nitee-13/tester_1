@@ -1,6 +1,6 @@
 'use client';
-import * as React from "react";
-import { useEffect, useRef } from 'react';
+import * as React from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Files, SendHorizontal, Trash2 } from "lucide-react";
@@ -9,6 +9,8 @@ import { useSources } from "@/context/SourcesContext";
 import { v4 as uuidv4 } from 'uuid';
 import { Typewriter } from "react-simple-typewriter";
 import PdfViewer from "@/components/PdfViewer";
+import { useRouter } from "next/navigation";
+import { analyzeContract, getAnalysisStatus, getAnalysisResult } from "@/app/services/api";
 
 const THINKING_PHRASES = [
   "Analyzing Pdf",
@@ -36,6 +38,7 @@ export default function Chat() {
   const fileInputRef = React.useRef<HTMLInputElement>(null);
   const messagesEndRef = React.useRef<HTMLDivElement>(null);
   const timeoutRef = useRef<NodeJS.Timeout[]>([]);
+  const router = useRouter();
 
 
 
@@ -59,9 +62,9 @@ export default function Chat() {
     };
   }, []);
 
-  const formatTimestamp = (date: Date) => {
-    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-  };
+  // const formatTimestamp = (date: Date) => {
+  //   return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  // };
 
   const handleSend = () => {
     if (inputValue.trim() || selectedFiles.length > 0) {
@@ -156,7 +159,9 @@ export default function Chat() {
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
-      setSelectedFiles(Array.from(e.target.files));
+      const files = Array.from(e.target.files);
+      setSelectedFiles(files);
+      handleUpload(files);
     }
   };
 
@@ -179,6 +184,126 @@ export default function Chat() {
       handleSend();
     }
   };
+    const handleUpload = async (files: File[]) => {
+    if (files.length > 0) {
+      try {
+        // Show initial thinking message
+        const thinkingMessage: Message = {
+          sender: "bot",
+          text: THINKING_PHRASES[0],
+          isThinking: true,
+          timestamp: new Date(),
+        };
+        setMessages(prev => [...prev, thinkingMessage]);
+
+        // Start analysis
+        const { job_id } = await analyzeContract(files[0]);
+        
+        // Poll for status
+        const pollInterval = setInterval(async () => {
+          try {
+            const { status } = await getAnalysisStatus(job_id);
+            
+            if (status === 'completed') {
+              clearInterval(pollInterval);
+              const result = await getAnalysisResult(job_id);
+              console.log("[Chat] result", result)
+              const formattedResult = {
+          thoughts: result.thoughts.filter((thought, index, self) => 
+            self.indexOf(thought) === index // Remove duplicates
+          ),
+          redFlags: result.red_flags.map(flag => flag.clause_text)
+        };
+                // Create a formatted message
+        // Updated message format with HTML for styling
+        const message = `
+<div class="${styles.analysisResults}">
+  <h1 class="${styles.analysisHeading}">Analysis Results</h1>
+
+  <h2 class="${styles.sectionHeading}">Key Thoughts</h2>
+  <div class="${styles.analysisContent}">
+    ${formattedResult.thoughts.map((thought, index) => 
+      `<div class="${styles.listItem}">${index + 1}. ${thought}</div>`
+    ).join('')}
+  </div>
+
+  <h2 class="${styles.sectionHeading}">Red Flag Clauses</h2>
+  <div class="${styles.analysisContent}">
+    ${formattedResult.redFlags.map((clause, index) => 
+      `<div class="${styles.listItem}">${index + 1}. ${clause}</div>`
+    ).join('')}
+  </div>
+</div>`;
+
+
+
+
+
+              
+              // Update messages with final result
+              setMessages(prev => {
+                const messagesWithoutThinking = prev.filter(msg => !msg.isThinking);
+                return [
+                  ...messagesWithoutThinking,
+                  {
+                    sender: "bot",
+                    text: message,// Format result as needed
+                    timestamp: new Date(),
+                  }
+                ];
+              });
+            } else if (status === 'failed') {
+              clearInterval(pollInterval);
+              throw new Error('Analysis failed');
+            } else {
+              // Update thinking message with next phrase
+              setMessages(prev => {
+                const currentIndex = THINKING_PHRASES.findIndex(
+                  phrase => prev[prev.length - 1].text.startsWith(phrase)
+                );
+                const nextIndex = (currentIndex + 1) % THINKING_PHRASES.length;
+                
+                const updatedMessages = [...prev];
+                updatedMessages[updatedMessages.length - 1] = {
+                  ...updatedMessages[updatedMessages.length - 1],
+                  text: THINKING_PHRASES[nextIndex],
+                };
+                return updatedMessages;
+              });
+            }
+          } catch (error) {
+            clearInterval(pollInterval);
+            console.error('Error polling status:', error);
+          }
+        }, 1000); // Poll every second
+
+        // Add sources to context
+        const newSources = files.map(file => ({
+          id: uuidv4(),
+          name: file.name,
+          uploadTime: new Date(),
+          url: URL.createObjectURL(file),
+        }));
+        addSources(newSources);
+        setSelectedSource(newSources[0]);
+
+      } catch (error) {
+        console.error('Error processing file:', error);
+        // Show error message to user
+        setMessages(prev => [
+          ...prev.filter(msg => !msg.isThinking),
+          {
+            sender: "bot",
+            text: "Sorry, there was an error processing your file.",
+            timestamp: new Date(),
+          }
+        ]);
+      }
+    }
+  };
+  const handleAskAI = () => {
+    router.push('/ask-ai');
+  }
 
  return (
     <div className={styles.chatContainer}>
@@ -216,14 +341,12 @@ export default function Chat() {
                                 delaySpeed={100}
                               />
                             ) : (
-                              <Typewriter
-                                words={[message.text]}
-                                loop={1}
-                                cursor={false}
-                                typeSpeed={30}
-                                deleteSpeed={50}
-                                delaySpeed={500}
-                              />
+                              <div 
+                               className={styles.typewriterContainer}
+                               dangerouslySetInnerHTML={{
+                                __html: message.text
+                               }}
+                              /> 
                             )
                           ) : (
                             message.text
@@ -271,13 +394,14 @@ export default function Chat() {
                 multiple
                 accept="application/pdf"
               />
+              <div className="flex items-center justify-between w-full gap-3 ">
               <Button 
                 variant="ghost"
                 size="icon"
                 className={styles.attachButton}
                 onClick={handleFileClick}
               >
-                <Files className="h-4 w-4" />
+                <Files className="h-4 w-4" /> Upload Document
               </Button>
 
               {selectedFiles.length > 0 && (
@@ -291,22 +415,15 @@ export default function Chat() {
                 </Button>
               )}
               
-              <Input
-                value={inputValue}
-                onChange={(e) => setInputValue(e.target.value)}
-                onKeyDown={handleKeyPress}
-                placeholder={selectedFiles.length > 0 
-                  ? `${selectedFiles.length} file(s) selected. Type a message...` 
-                  : "Type your message..."}
-                className={styles.messageInput}
-              />
-              
+        
               <Button 
-                onClick={handleSend}
-                className={styles.sendButton}
+                onClick={handleAskAI}
+                className={styles.askAIButton}
+                variant="default"
               >
-                <SendHorizontal className="h-4 w-4 text-white" />
-              </Button>
+                {/* <SendHorizontal className="h-4 w-4 text-white" /> */}
+                Ask AI
+              </Button></div> 
             </div>
           </div>
         </div>

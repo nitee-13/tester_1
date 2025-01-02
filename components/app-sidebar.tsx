@@ -67,7 +67,7 @@ const data = {
   ],
   navMain: [
     {      
-      title: "Chat",
+      title: "Dashboard",
       url: "/chat",
       icon: Bot,
     },
@@ -206,8 +206,8 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   }
     // Create a combined navigation array with Chat, Sources, and other items
   const combinedNavItems = React.useMemo(() => {
-  const chatItem = data.navMain.find(item => item.title === "Chat") // Get the Chat item
-  const otherItems = data.navMain.filter(item => item.title !== "Chat")
+  const chatItem = data.navMain.find(item => item.url === "/chat") // Get the Chat item
+  const otherItems = data.navMain.filter(item => item.url !== "/chat")
   const sourcesItem = createSourcesNavItem(sources, selectedSource, handleSourceClick);
   console.log("[AppSidebar] combinedNavItems", [chatItem, sourcesItem, ...otherItems])
     

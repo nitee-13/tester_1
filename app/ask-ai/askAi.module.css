@@ -1,0 +1,70 @@
+.chatContainer {
+  @apply flex flex-col h-full w-full;
+}
+
+.messagesContainer {
+  @apply flex-1 overflow-y-auto mb-4 p-4 max-w-4xl mx-auto w-full
+    bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 flex flex-col;
+}
+
+.messageWrapper {
+  @apply w-full flex items-start;
+}
+
+.messageUser {
+  @apply mb-4 p-3 bg-secondary rounded-lg max-w-[80%] shadow-sm 
+    hover:shadow-md transition-shadow;
+  margin-left: auto;
+}
+
+.messageBot {
+  @apply mb-4 p-3 bg-primary rounded-lg max-w-[80%] shadow-sm 
+    hover:shadow-md transition-shadow;
+  margin-right: auto;
+}
+
+.messageContent {
+  @apply w-full;
+}
+
+.textAndTimestamp {
+  @apply flex items-center w-full;
+}
+
+.messageText {
+  @apply text-sm text-secondary-foreground;
+  white-space: pre-wrap;
+}
+
+.emptyMessages {
+  @apply h-full flex items-center justify-center;
+}
+
+.emptyText {
+  @apply text-muted-foreground text-sm;
+}
+
+.inputContainer {
+  @apply flex items-center justify-center p-4 max-w-4xl mx-auto w-full
+    bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60
+    bg-gray-900/90 rounded-t-2xl;
+  position: sticky;
+  bottom: 0;
+}
+
+.messageInput {
+  @apply flex-1 focus-visible:ring-0 border-0 transition-transform duration-200 ease-in-out hover:scale-105;
+}
+
+.messageInput::placeholder {
+  @apply transition-opacity duration-200;
+}
+
+.messageInput:focus::placeholder {
+  @apply opacity-0;
+}
+
+.sendButton {
+  @apply shrink-0 bg-green-500 hover:bg-green-600 rounded-full p-2 
+    transition-transform duration-200 ease-in-out hover:scale-125;
+} 
