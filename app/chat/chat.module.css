@@ -165,3 +165,39 @@
     opacity: 1;
   }
 }
+/* Add new styles for collapsible section */
+.collapsibleSection {
+  border: 1px solid #e5e7eb;
+  border-radius: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.collapsibleHeader {
+  padding: 0.75rem 1rem;
+  background-color: #f9fafb;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-radius: 0.5rem;
+}
+
+.collapsibleHeader:hover {
+  background-color: #f3f4f6;
+}
+
+.collapsibleContent {
+  padding: 1rem;
+  display: none;
+}
+
+.collapsibleContent.expanded {
+  display: block;
+}
+.expandIcon {
+  transition: transform 0.2s ease;
+}
+
+.expandIcon.expanded {
+  transform: rotate(180deg);
+}

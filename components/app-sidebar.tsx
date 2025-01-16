@@ -44,13 +44,13 @@ type NavType = {
 // This is sample data.
 const data = {
   user: {
-    name: "Niteeq",
-    email: "nit.sheik@gmail.com",
-    avatar: "/avatars/shadcn.jpg",
+    name: "user",
+    email: "user@supscribe.ai",
+    avatar: "images/supscribe.svg",
   },
   teams: [
     {
-      name: "Acme Inc",
+      name: "SupScribe.ai",
       logo: GalleryVerticalEnd,
       plan: "Enterprise",
     },

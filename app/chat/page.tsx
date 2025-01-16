@@ -11,6 +11,7 @@ import { Typewriter } from "react-simple-typewriter";
 import PdfViewer from "@/components/PdfViewer";
 import { useRouter } from "next/navigation";
 import { analyzeContract, getAnalysisStatus, getAnalysisResult } from "@/app/services/api";
+import RedFlagChart from "@/components/RedFlagChart";
 
 const THINKING_PHRASES = [
   "Analyzing Pdf",
@@ -30,6 +31,13 @@ type Message = {
   isThinking?: boolean; // Done to generate thinking phrases
   timestamp: Date;
 };
+type RedFlagClause = {
+  clause: string;
+  finalText: string;
+  riskScore: number;
+  x: number;
+  y: number;
+};
 
 export default function Chat() {
   const [messages, setMessages] = React.useState<Message[]>([]);
@@ -39,6 +47,8 @@ export default function Chat() {
   const messagesEndRef = React.useRef<HTMLDivElement>(null);
   const timeoutRef = useRef<NodeJS.Timeout[]>([]);
   const router = useRouter();
+  const [isThoughtsExpaned, setIsThoughtsExpaned] = React.useState(false);
+  const [redFlagClauses, setRedFlagClauses] = useState<RedFlagClause[]>([]);
 
 
 
@@ -98,7 +108,7 @@ export default function Chat() {
 
       // Add initial delay before showing first thinking message
       const initialDelay = 1000; // 1 second delay
-      const phraseDisplayTime = 10; // 3 seconds per phrase
+      const phraseDisplayTime = 15000; // 3 seconds per phrase
 
       const initialTimeoutId = setTimeout(() => {
         // Add initial thinking message
@@ -158,6 +168,7 @@ export default function Chat() {
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    console.log("[Chat] handleFileChange", e)
     if (e.target.files) {
       const files = Array.from(e.target.files);
       setSelectedFiles(files);
@@ -187,6 +198,7 @@ export default function Chat() {
     const handleUpload = async (files: File[]) => {
     if (files.length > 0) {
       try {
+        console.log("[Chat] Starting File Upload")
         // Show initial thinking message
         const thinkingMessage: Message = {
           sender: "bot",
@@ -200,40 +212,48 @@ export default function Chat() {
         const { job_id } = await analyzeContract(files[0]);
         
         // Poll for status
+
         const pollInterval = setInterval(async () => {
+          console.log("[Chat] Polling for status")
           try {
             const { status } = await getAnalysisStatus(job_id);
+            console.log("[Chat] status", status)
             
             if (status === 'completed') {
+              console.log("[Chat] Analysis completed")
               clearInterval(pollInterval);
-              const result = await getAnalysisResult(job_id);
-              console.log("[Chat] result", result)
-              const formattedResult = {
-          thoughts: result.thoughts.filter((thought, index, self) => 
-            self.indexOf(thought) === index // Remove duplicates
-          ),
-          redFlags: result.red_flags.map(flag => flag.clause_text)
-        };
-                // Create a formatted message
+              const analysisResult = await getAnalysisResult(job_id);
+                          // Check if 'result' exists
+            if (!analysisResult || !analysisResult.results) {
+              throw new Error("Invalid API response: 'result' field is missing.");
+            }
+            const redFlagClauses = analysisResult.results
+              .filter(clause => clause.red_flag === "RED_FLAG" && clause.risk_score > 50)
+              .map(clause => ({
+                clause: clause.clause,
+                finalText: clause.final_text,
+                riskScore: clause.risk_score,
+                x: clause.x,
+                y: clause.y
+              }));
+
+            console.log("[Chat] redFlagClauses", redFlagClauses);
+            setRedFlagClauses(redFlagClauses);
+        // Create a formatted message
         // Updated message format with HTML for styling
-        const message = `
-<div class="${styles.analysisResults}">
-  <h1 class="${styles.analysisHeading}">Analysis Results</h1>
-
-  <h2 class="${styles.sectionHeading}">Key Thoughts</h2>
-  <div class="${styles.analysisContent}">
-    ${formattedResult.thoughts.map((thought, index) => 
-      `<div class="${styles.listItem}">${index + 1}. ${thought}</div>`
-    ).join('')}
-  </div>
-
-  <h2 class="${styles.sectionHeading}">Red Flag Clauses</h2>
-  <div class="${styles.analysisContent}">
-    ${formattedResult.redFlags.map((clause, index) => 
-      `<div class="${styles.listItem}">${index + 1}. ${clause}</div>`
-    ).join('')}
-  </div>
-</div>`;
+const message = `
+              <div class="${styles.analysisResults}">
+                <h1 class="${styles.analysisHeading}">Red Flag Clauses</h1>
+                <div class="${styles.analysisContent}">
+                  ${redFlagClauses.map((clause, index) => 
+                    `<div class="${styles.listItem}">
+                      <strong>Clause:</strong> ${clause.clause}<br/>
+                      <strong>Risk Score:</strong> ${clause.riskScore}
+                    </div>`
+                  ).join('')}
+                </div>
+              </div>`;
+ 
 
 
 
@@ -336,10 +356,10 @@ export default function Chat() {
                                 loop={0}
                                 cursor={true}
                                 cursorStyle='|'
-                                typeSpeed={50}
+                                typeSpeed={70}
                                 deleteSpeed={200}
                                 delaySpeed={100}
-                              />
+                              /> 
                             ) : (
                               <div 
                                className={styles.typewriterContainer}
@@ -349,7 +369,7 @@ export default function Chat() {
                               /> 
                             )
                           ) : (
-                            message.text
+                            <p className={styles.messageText}>{message.text}</p>
                           )}
                         </p>
                       </div>
@@ -383,6 +403,12 @@ export default function Chat() {
               )}
               <div ref={messagesEndRef} />
             </div>
+                    {/* Render the Chart if there are red flag clauses */}
+          {redFlagClauses.length > 0 && (
+            <div className={styles.chartContainer}>
+              <RedFlagChart data={redFlagClauses} />
+            </div>
+          )}
 
             {/* Input Container */}
             <div className={`${styles.inputContainer} bg-background`}>
@@ -411,7 +437,7 @@ export default function Chat() {
                   className={styles.deleteButton}
                   onClick={handleClearFiles}
                 >
-                  <Trash2 className="h-4 w-4 text-red-500" />
+                  {/* <Trash2 className="h-4 w-4 text-red-500" /> */}
                 </Button>
               )}
               
