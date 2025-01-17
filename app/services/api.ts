@@ -1,4 +1,4 @@
-const API_BASE_URL = 'http://192.168.0.133:8000'; // adjust to your backend URL
+const API_BASE_URL = 'http://192.168.46.49:8000'; // adjust to your backend URL
 
 export const analyzeContract = async (file: File) => {
   const formData = new FormData();
