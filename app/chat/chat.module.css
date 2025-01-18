@@ -228,12 +228,13 @@
   z-index: -1;
   padding:3px;
   border-radius: inherit ;
-  animation: 5s spin linear infinite;
+  animation: 2s spin linear infinite;
   transition: transform 0.4s ease;
 }
 .customBorder:hover::after, 
 .customBorder:hover::before{
   transform: scale(1.04);
+  animation-duration: 1s;
   /* animation-play-state: paused; */
 }
 .customBorder::before { 
@@ -255,13 +256,12 @@
   padding: 0;
 }
 .buttonWrapper Button{
-  @apply bg-gray-800 ;
   background-color: #1c1f2b;
   border-radius: 10px;
-  transition: background-color 0.3s ease;
+  transition: color 0.5s ease;
   color: rgba(255,255,255,0.5);
 }
 .buttonWrapper Button:hover{
   background-color: #1c1f2b;
-  color:rgba(255,255,255,1);
+  color:rgba(255,255,255,0.9);
 }
