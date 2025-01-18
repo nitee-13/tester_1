@@ -218,9 +218,9 @@
 .customBorder::after, .customBorder::before{
   content: "";
   position: absolute;
-  height: calc(100% + 2px);
-  width:calc(100% + 2px);
-  background-image:conic-gradient(from var(--angle),transparent 0.5%, #ff4545, #00ff99, #006aff, #ff4545);
+  height: calc(100% + 6px);
+  width:calc(100% + 6px);
+  background-image:conic-gradient(from var(--angle), #ff4545, #00ff99, #006aff, #ff4545);
   /* background-image:conic-gradient(from var(--angle),transparent 50%, #ff4545); */
   top:50%;
   left:50%;
@@ -237,7 +237,7 @@
   /* animation-play-state: paused; */
 }
 .customBorder::before { 
-  filter:blur(1.05rem);
+  filter:blur(2.25rem);
 } 
 
 @keyframes spin{ 
