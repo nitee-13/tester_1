@@ -1,4 +1,5 @@
 "use client"
+import {usePathname} from 'next/navigation'
 import { cookies } from "next/headers";  //This is for keeping the sidebar persisted
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
@@ -15,6 +16,8 @@ import {useTheme} from 'next-themes'
 
 //async function to keep server persisted during loaded
 export default function Layout({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname();
+  const isSignUp = pathname === "/sign-up" || pathname.includes("/sign-up/");
     //The bottom two lines are for keeping sidebar persisted on reloads
   return (
    <ClerkProvider>
@@ -38,7 +41,13 @@ export default function Layout({ children }: { children: React.ReactNode }) {
           </SidebarProvider>
           </SignedIn> 
           {<SignedOut>
-            <CustomSignIn />
+                 {isSignUp ? (
+                   // Let the /sign-up page show when signed out
+                   children
+                 ) : (
+                   // Otherwise show sign in
+                   <CustomSignIn />
+                 )}
           </SignedOut> }
         </ThemeProvider>
       </body>
