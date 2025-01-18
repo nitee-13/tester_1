@@ -3,7 +3,7 @@ import * as React from 'react';
 import { useEffect, useRef, useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Files, SendHorizontal, Trash2 } from "lucide-react";
+import { Files, SendHorizontal, SendToBack, Trash2 } from "lucide-react";
 import styles from "./chat.module.css";
 import { useSources } from "@/context/SourcesContext";
 import { v4 as uuidv4 } from 'uuid';
@@ -50,8 +50,7 @@ export default function Chat() {
   const [isThoughtsExpaned, setIsThoughtsExpaned] = React.useState(false);
   const [redFlagClauses, setRedFlagClauses] = useState<RedFlagClause[]>([]);
 
-
-
+  const [hasUploaded, setHasUploaded] = React.useState(false);
   const { addSources, selectedSource, setSelectedSource } = useSources();
   console.log("[Chat] selectedSource", selectedSource)
     const handleClosePdf = () => {
@@ -167,12 +166,13 @@ export default function Chat() {
     }
   };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     console.log("[Chat] handleFileChange", e)
     if (e.target.files) {
       const files = Array.from(e.target.files);
       setSelectedFiles(files);
-      handleUpload(files);
+      setHasUploaded(true);
+     await handleUpload(files);
     }
   };
 
@@ -324,7 +324,30 @@ const message = `
   const handleAskAI = () => {
     router.push('/ask-ai');
   }
-
+  if (!hasUploaded) {
+    return (
+      <div className={` flex items-center justify-center h-full`}>
+        <div className={`${styles.customBorder} ${styles.buttonWrapper}`}>
+        <input
+          type="file"
+          ref={fileInputRef}
+          onChange={handleFileChange}
+          className="hidden"
+          multiple
+          accept="application/pdf"
+        />
+        <Button 
+          variant="default" 
+          size="lg" 
+          onClick={handleFileClick}
+          className="text-xl p-8"
+        >
+          Upload your PDF
+        </Button>
+        </div>
+      </div>
+    );
+  }
  return (
     <div className={styles.chatContainer}>
       <div className="h-full flex">

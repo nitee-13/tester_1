@@ -201,3 +201,67 @@
 .expandIcon.expanded {
   transform: rotate(180deg);
 }
+/* Custom Border Changes */
+.customBorder {
+    @apply mx-auto p-8 text-center relative bg-background;
+  border-radius: 10px;
+  z-index: 1;
+
+  display: inline-block;
+}
+
+@property --angle{
+  syntax: "<angle>";
+  inherits: false;
+  initial-value: 0deg;
+} 
+.customBorder::after, .customBorder::before{
+  content: "";
+  position: absolute;
+  height: calc(100% + 2px);
+  width:calc(100% + 2px);
+  background-image:conic-gradient(from var(--angle),transparent 0.5%, #ff4545, #00ff99, #006aff, #ff4545);
+  /* background-image:conic-gradient(from var(--angle),transparent 50%, #ff4545); */
+  top:50%;
+  left:50%;
+  translate: -50% -50%;
+  z-index: -1;
+  padding:3px;
+  border-radius: inherit ;
+  animation: 5s spin linear infinite;
+  transition: transform 0.4s ease;
+}
+.customBorder:hover::after, 
+.customBorder:hover::before{
+  transform: scale(1.04);
+  /* animation-play-state: paused; */
+}
+.customBorder::before { 
+  filter:blur(1.05rem);
+} 
+
+@keyframes spin{ 
+  from{
+    --angle:0deg;
+  }
+  to{
+    --angle:360deg; 
+  }
+}
+.buttonWrapper{
+  position:relative;
+  z-index:1;
+  margin: 0; 
+  padding: 0;
+}
+.buttonWrapper Button{
+  @apply bg-gray-800 ;
+  background-color: #1c1f2b;
+  border-radius: 10px;
+  transition: background-color 0.3s ease;
+  color: rgba(255,255,255,0.5);
+}
+.buttonWrapper Button:hover{
+  background-color: #1c1f2b;
+  color:rgba(255,255,255,1);
+}
