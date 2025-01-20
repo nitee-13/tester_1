@@ -17,6 +17,7 @@ type RedFlagClause = {
   riskScore: number;
   x: number;
   y: number;
+  riskLevel: string;
 };
 
 type RedFlagChartProps = {
@@ -24,13 +25,32 @@ type RedFlagChartProps = {
 };
 
 const RedFlagChart: React.FC<RedFlagChartProps> = ({ data }) => {
+  const highRiskData = data.filter(clause => clause.riskLevel === 'High');
+  const mediumRiskData = data.filter(clause => clause.riskLevel === 'Medium');
+  const lowRiskData = data.filter(clause => clause.riskLevel === 'Low');
   const chartData = {
     datasets: [
       {
-        label: 'Red Flag Clauses',
-        data: data.map(clause => ({ x: clause.x, y: clause.y })),
+        label: 'High Flag Clauses',
+        data: highRiskData.map(clause => ({ x: clause.x, y: clause.y })),
         backgroundColor: 'rgba(255, 0, 0, 1)',
         borderColor: 'rgba(255, 0, 0, 1)',
+        borderWidth: 1,
+        pointRadius: 3,
+      },
+      {
+        label: 'Medium Flag Clauses',
+        data: mediumRiskData.map(clause => ({ x: clause.x, y: clause.y })),
+        backgroundColor: 'rgba(255, 255, 0, 1)',
+        borderColor: 'rgba(255, 255, 0, 1)',
+        borderWidth: 1,
+        pointRadius: 3,
+      },
+      {
+        label: 'Low Flag Clauses',
+        data: lowRiskData.map(clause => ({ x: clause.x, y: clause.y })),
+        backgroundColor: 'rgba(0, 255, 0, 1)',
+        borderColor: 'rgba(0, 255, 0, 1)',
         borderWidth: 1,
         pointRadius: 3,
       },
@@ -42,44 +62,61 @@ const RedFlagChart: React.FC<RedFlagChartProps> = ({ data }) => {
     plugins: {
       title: {
         display: true,
-        text: 'Red Flag Clauses Scatter Plot',
+        text: 'Risk Analysis Scatter Plot',
       },
       tooltip: {
         callbacks: {
           label: function(context: any) {
-            const clause = data[context.dataIndex];
+            const datasetIndex = context.datasetIndex;
+            let clause;
+            switch(datasetIndex) {
+              case 0:
+                clause = highRiskData[context.dataIndex];
+                break;
+              case 1:
+                clause = mediumRiskData[context.dataIndex];
+                break;
+              case 2:
+                clause = lowRiskData[context.dataIndex];
+                break;
+              default:
+                return [];
+            }
             return [
+              `Risk Level: ${clause.riskLevel}`,
               `Clause: ${clause.clause}`,
               `Final Text: ${clause.finalText}`,
-              `Risk Score: ${clause.riskScore}`,
+              `Risk Score: ${clause.riskScore.toFixed(2)}%`,
             ];
           },
         },
       },
       legend: {
-        display: false,
+        display: true,
       },
     },
     scales: {
       x: {
         title: {
           display: true,
-          text: 'X Coordinate',
+          text: 'Probability',
         },
         grid: {
                       color: 'rgba(255, 255, 255, 0.1)', // lighter grid lines
         },
         backgroundColor: 'rgba(128, 128, 128, 0.2)',
+        position: 'center'
       },
       y: {
         title: {
           display: true,
-          text: 'Y Coordinate',
+          text: 'Financial Impact',
         },
         grid: {
           color: 'rgba(255, 255, 255, 0.1)', // lighter grid lines
         },
         backgroundColor: 'rgba(128, 128, 128, 0.2)',
+        position: 'center'
       },
     },
     backgroundColor: 'rgba(128, 128, 128, 0.2)',

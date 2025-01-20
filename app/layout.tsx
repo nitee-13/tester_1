@@ -26,8 +26,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
         <ThemeProvider
         attribute="class"
         defaultTheme="dark"
-        enableSystem
-        disableTransitionOnChange> 
+        enableSystem> 
         <SignedIn>
           <SidebarProvider>
             <SourcesProvider>

@@ -37,6 +37,15 @@ type RedFlagClause = {
   riskScore: number;
   x: number;
   y: number;
+  riskLevel: string;
+};
+type AllClausesForChart = {
+  clause: string;
+  finalText: string;
+  riskScore: number;
+  x: number;
+  y: number;
+  riskLevel: string;
 };
 
 export default function Chat() {
@@ -45,10 +54,12 @@ export default function Chat() {
   const [selectedFiles, setSelectedFiles] = React.useState<File[]>([]);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
   const messagesEndRef = React.useRef<HTMLDivElement>(null);
+  const [isChartLoading, setIsChartLoading] = React.useState(false);
   const timeoutRef = useRef<NodeJS.Timeout[]>([]);
   const router = useRouter();
   const [isThoughtsExpaned, setIsThoughtsExpaned] = React.useState(false);
   const [redFlagClauses, setRedFlagClauses] = useState<RedFlagClause[]>([]);
+  const [allClausesForChart, setAllClausesForChart] = useState<AllClausesForChart[]>([]);
 
   const [hasUploaded, setHasUploaded] = React.useState(false);
   const { addSources, selectedSource, setSelectedSource } = useSources();
@@ -198,6 +209,7 @@ export default function Chat() {
     const handleUpload = async (files: File[]) => {
     if (files.length > 0) {
       try {
+        setIsChartLoading(true);
         console.log("[Chat] Starting File Upload")
         // Show initial thinking message
         const thinkingMessage: Message = {
@@ -223,22 +235,42 @@ export default function Chat() {
               console.log("[Chat] Analysis completed")
               clearInterval(pollInterval);
               const analysisResult = await getAnalysisResult(job_id);
+              setIsChartLoading(false);
                           // Check if 'result' exists
-            if (!analysisResult || !analysisResult.results) {
+            if (!analysisResult || !analysisResult.result) {
               throw new Error("Invalid API response: 'result' field is missing.");
             }
-            const redFlagClauses = analysisResult.results
-              .filter(clause => clause.red_flag === "RED_FLAG" && clause.risk_score > 50)
+            console.log("[Chat] analysisResult", analysisResult)
+                        // First create array for all clauses (for chart)
+            const allClausesForChart = analysisResult.result.map(clause => ({
+                clause: clause.clause_text,
+                finalText: clause.predicted_label,
+                riskScore: clause.final_risk * 100,
+                x: clause.probability ,
+                y: clause.financial_impact ,
+                riskLevel: clause.risk_level
+            }));
+            const redFlagClauses = analysisResult.result
+              .filter(clause => clause.risk_level === "Medium" || clause.risk_level === "High")
+              .sort((a, b) => {
+                if (a.risk_level !== b.risk_level) {
+                  return a.risk_level === "High" ? -1 : 1;
+                }
+                return b.final_risk - a.final_risk;
+              })
               .map(clause => ({
-                clause: clause.clause,
-                finalText: clause.final_text,
-                riskScore: clause.risk_score,
-                x: clause.x,
-                y: clause.y
+                clause: clause.clause_text,
+                finalText: clause.predicted_label,
+                riskScore: clause.final_risk * 100,
+                x: clause.x_coordinate,
+                y: clause.y_coordinate,
+                riskLevel: clause.risk_level
               }));
+
 
             console.log("[Chat] redFlagClauses", redFlagClauses);
             setRedFlagClauses(redFlagClauses);
+            setAllClausesForChart(allClausesForChart);
         // Create a formatted message
         // Updated message format with HTML for styling
 const message = `
@@ -247,8 +279,9 @@ const message = `
                 <div class="${styles.analysisContent}">
                   ${redFlagClauses.map((clause, index) => 
                     `<div class="${styles.listItem}">
-                      <strong>Clause:</strong> ${clause.clause}<br/>
-                      <strong>Risk Score:</strong> ${clause.riskScore}
+                      <div class ="${styles.clauseLabel} ${clause.riskLevel === 'High' ? styles.highRiskLabel : styles.mediumRiskLabel}">Clause:</div> 
+                      <div class ="${styles.clauseText}">${clause.clause}</div>
+                      <div class ="${styles.riskLabel}">Risk Score: ${clause.riskScore.toFixed(2)} % </div>
                     </div>`
                   ).join('')}
                 </div>
@@ -294,6 +327,7 @@ const message = `
           } catch (error) {
             clearInterval(pollInterval);
             console.error('Error polling status:', error);
+            setIsChartLoading(false);
           }
         }, 1000); // Poll every second
 
@@ -353,8 +387,9 @@ const message = `
       <div className="h-full flex">
         {/* Chat Section */}
         <div className={selectedSource ? "w-1/2 flex flex-col" : "w-full flex flex-col"}>
+        <div className={styles.contentWrapper}>  
           {/* Messages and Input Container */}
-          <div className="flex flex-col h-full">
+          {/* <div className="flex flex-col h-full">  */}
             {/* Messages Container */}
             <div className={`${styles.messagesContainer} flex-1 overflow-y-auto`}>
               {messages.map((message, index) => (
@@ -427,53 +462,19 @@ const message = `
               <div ref={messagesEndRef} />
             </div>
                     {/* Render the Chart if there are red flag clauses */}
-          {redFlagClauses.length > 0 && (
-            <div className={styles.chartContainer}>
-              <RedFlagChart data={redFlagClauses} />
-            </div>
-          )}
-
-            {/* Input Container */}
-            <div className={`${styles.inputContainer} bg-background`}>
-              <input
-                type="file"
-                ref={fileInputRef}
-                onChange={handleFileChange}
-                className="hidden"
-                multiple
-                accept="application/pdf"
-              />
-              <div className="flex items-center justify-between w-full gap-3 ">
-              <Button 
-                variant="ghost"
-                size="icon"
-                className={styles.attachButton}
-                onClick={handleFileClick}
-              >
-                <Files className="h-4 w-4" /> Upload Document
-              </Button>
-
-              {selectedFiles.length > 0 && (
-                <Button 
-                  variant="ghost"
-                  size="icon"
-                  className={styles.deleteButton}
-                  onClick={handleClearFiles}
-                >
-                  {/* <Trash2 className="h-4 w-4 text-red-500" /> */}
-                </Button>
-              )}
-              
-        
-              <Button 
-                onClick={handleAskAI}
-                className={styles.askAIButton}
-                variant="default"
-              >
-                {/* <SendHorizontal className="h-4 w-4 text-white" /> */}
-                Ask AI
-              </Button></div> 
-            </div>
+          {/* Chart Section */}
+          <div className={styles.chartSection}>
+            {isChartLoading ? (
+              <div className={styles.chartLoading}>
+                <div className={styles.loadingSpinner}></div>
+                <p>Generating analysis chart...</p>
+              </div>
+            ) : redFlagClauses.length > 0 && (
+              <div className={styles.chartContainer}>
+                <RedFlagChart data={allClausesForChart} />
+              </div>
+            )}
+          </div>
           </div>
         </div>
 
