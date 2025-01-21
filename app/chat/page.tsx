@@ -12,6 +12,7 @@ import PdfViewer from "@/components/PdfViewer";
 import { useRouter } from "next/navigation";
 import { analyzeContract, getAnalysisStatus, getAnalysisResult } from "@/app/services/api";
 import RedFlagChart from "@/components/RedFlagChart";
+import { highlightPdfClauses } from "@/app/services/api";
 
 const THINKING_PHRASES = [
   "Analyzing Pdf",
@@ -62,7 +63,17 @@ export default function Chat() {
   const [allClausesForChart, setAllClausesForChart] = useState<AllClausesForChart[]>([]);
 
   const [hasUploaded, setHasUploaded] = React.useState(false);
-  const { addSources, selectedSource, setSelectedSource } = useSources();
+  const { addSources, selectedSource, setSelectedSource, sources } = useSources();
+    React.useEffect(() => {
+    return () => {
+      // Cleanup function for object URLs
+      sources.forEach(source => {
+        if (source.url.startsWith('blob:')) {
+          URL.revokeObjectURL(source.url);
+        }
+      });
+    };
+  }, [sources]); 
   console.log("[Chat] selectedSource", selectedSource)
     const handleClosePdf = () => {
     setSelectedSource(null)
@@ -71,6 +82,7 @@ export default function Chat() {
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
+
 
   React.useEffect(() => {
     scrollToBottom();
@@ -219,6 +231,14 @@ export default function Chat() {
           timestamp: new Date(),
         };
         setMessages(prev => [...prev, thinkingMessage]);
+        const originalSources = [{
+          id: uuidv4(),
+          name: files[0].name,
+          uploadTime: new Date(),
+          url: URL.createObjectURL(files[0]),
+        }];
+        addSources(originalSources);
+        setSelectedSource(originalSources[0]);
 
         // Start analysis
         const { job_id } = await analyzeContract(files[0]);
@@ -241,6 +261,43 @@ export default function Chat() {
               throw new Error("Invalid API response: 'result' field is missing.");
             }
             console.log("[Chat] analysisResult", analysisResult)
+            const clauseTexts = analysisResult.result.map(clause => clause.clause_text);
+            console.log("[Chat] clauseTexts", clauseTexts)
+
+            try {
+              const highlightedPdfBlob = await highlightPdfClauses(files[0], clauseTexts);
+              
+              // Create URL for highlighted PDF
+              const highlightedPdfUrl = URL.createObjectURL(highlightedPdfBlob);
+              console.log("[Chat] highlightedPdfUrl", highlightedPdfUrl)
+              // Add source with highlighted PDF
+              const highlightedSources = [{
+                id: uuidv4(),
+                name: `${files[0].name} (Highlighted)`,
+                uploadTime: new Date(),
+                url: highlightedPdfUrl,
+              }];
+                // Clean up original PDF URL
+              if (originalSources[0].url.startsWith('blob:')) {
+                  URL.revokeObjectURL(originalSources[0].url);
+              }
+
+              addSources(highlightedSources);
+              setSelectedSource(highlightedSources[0]);
+            } catch (error) {
+              console.error('Error highlighting PDF:', error);
+              // Fall back to original PDF if highlighting fails
+              const newSources = files.map(file => ({
+                id: uuidv4(),
+                name: file.name,
+                uploadTime: new Date(),
+                url: URL.createObjectURL(file),
+              }));
+              addSources(newSources);
+              setSelectedSource(newSources[0]);
+            }
+
+
                         // First create array for all clauses (for chart)
             const allClausesForChart = analysisResult.result.map(clause => ({
                 clause: clause.clause_text,
@@ -332,14 +389,14 @@ const message = `
         }, 1000); // Poll every second
 
         // Add sources to context
-        const newSources = files.map(file => ({
-          id: uuidv4(),
-          name: file.name,
-          uploadTime: new Date(),
-          url: URL.createObjectURL(file),
-        }));
-        addSources(newSources);
-        setSelectedSource(newSources[0]);
+        // const newSources = files.map(file => ({
+        //   id: uuidv4(),
+        //   name: file.name,
+        //   uploadTime: new Date(),
+        //   url: URL.createObjectURL(file),
+        // }));
+        // addSources(newSources);
+        // setSelectedSource(newSources[0]);
 
       } catch (error) {
         console.error('Error processing file:', error);
