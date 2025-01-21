@@ -3,7 +3,7 @@ import * as React from 'react';
 import { useEffect, useRef, useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Files, SendHorizontal, Trash2 } from "lucide-react";
+import { Files, SendHorizontal, SendToBack, Trash2 } from "lucide-react";
 import styles from "./chat.module.css";
 import { useSources } from "@/context/SourcesContext";
 import { v4 as uuidv4 } from 'uuid';
@@ -12,6 +12,7 @@ import PdfViewer from "@/components/PdfViewer";
 import { useRouter } from "next/navigation";
 import { analyzeContract, getAnalysisStatus, getAnalysisResult } from "@/app/services/api";
 import RedFlagChart from "@/components/RedFlagChart";
+import { highlightPdfClauses } from "@/app/services/api";
 
 const THINKING_PHRASES = [
   "Analyzing Pdf",
@@ -37,6 +38,15 @@ type RedFlagClause = {
   riskScore: number;
   x: number;
   y: number;
+  riskLevel: string;
+};
+type AllClausesForChart = {
+  clause: string;
+  finalText: string;
+  riskScore: number;
+  x: number;
+  y: number;
+  riskLevel: string;
 };
 
 export default function Chat() {
@@ -45,14 +55,25 @@ export default function Chat() {
   const [selectedFiles, setSelectedFiles] = React.useState<File[]>([]);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
   const messagesEndRef = React.useRef<HTMLDivElement>(null);
+  const [isChartLoading, setIsChartLoading] = React.useState(false);
   const timeoutRef = useRef<NodeJS.Timeout[]>([]);
   const router = useRouter();
   const [isThoughtsExpaned, setIsThoughtsExpaned] = React.useState(false);
   const [redFlagClauses, setRedFlagClauses] = useState<RedFlagClause[]>([]);
+  const [allClausesForChart, setAllClausesForChart] = useState<AllClausesForChart[]>([]);
 
-
-
-  const { addSources, selectedSource, setSelectedSource } = useSources();
+  const [hasUploaded, setHasUploaded] = React.useState(false);
+  const { addSources, selectedSource, setSelectedSource, sources } = useSources();
+    React.useEffect(() => {
+    return () => {
+      // Cleanup function for object URLs
+      sources.forEach(source => {
+        if (source.url.startsWith('blob:')) {
+          URL.revokeObjectURL(source.url);
+        }
+      });
+    };
+  }, [sources]); 
   console.log("[Chat] selectedSource", selectedSource)
     const handleClosePdf = () => {
     setSelectedSource(null)
@@ -61,6 +82,7 @@ export default function Chat() {
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
+
 
   React.useEffect(() => {
     scrollToBottom();
@@ -167,12 +189,13 @@ export default function Chat() {
     }
   };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     console.log("[Chat] handleFileChange", e)
     if (e.target.files) {
       const files = Array.from(e.target.files);
       setSelectedFiles(files);
-      handleUpload(files);
+      setHasUploaded(true);
+     await handleUpload(files);
     }
   };
 
@@ -198,6 +221,7 @@ export default function Chat() {
     const handleUpload = async (files: File[]) => {
     if (files.length > 0) {
       try {
+        setIsChartLoading(true);
         console.log("[Chat] Starting File Upload")
         // Show initial thinking message
         const thinkingMessage: Message = {
@@ -207,6 +231,14 @@ export default function Chat() {
           timestamp: new Date(),
         };
         setMessages(prev => [...prev, thinkingMessage]);
+        const originalSources = [{
+          id: uuidv4(),
+          name: files[0].name,
+          uploadTime: new Date(),
+          url: URL.createObjectURL(files[0]),
+        }];
+        addSources(originalSources);
+        setSelectedSource(originalSources[0]);
 
         // Start analysis
         const { job_id } = await analyzeContract(files[0]);
@@ -223,32 +255,90 @@ export default function Chat() {
               console.log("[Chat] Analysis completed")
               clearInterval(pollInterval);
               const analysisResult = await getAnalysisResult(job_id);
+              setIsChartLoading(false);
                           // Check if 'result' exists
-            if (!analysisResult || !analysisResult.results) {
+            if (!analysisResult || !analysisResult.result) {
               throw new Error("Invalid API response: 'result' field is missing.");
             }
-            const redFlagClauses = analysisResult.results
-              .filter(clause => clause.red_flag === "RED_FLAG" && clause.risk_score > 50)
-              .map(clause => ({
-                clause: clause.clause,
-                finalText: clause.final_text,
-                riskScore: clause.risk_score,
-                x: clause.x,
-                y: clause.y
+            console.log("[Chat] analysisResult", analysisResult)
+            const clauseTexts = analysisResult.result.map((clause: any) => clause.clause_text);
+            console.log("[Chat] clauseTexts", clauseTexts)
+
+            try {
+              const highlightedPdfBlob = await highlightPdfClauses(files[0], clauseTexts);
+              
+              // Create URL for highlighted PDF
+              const highlightedPdfUrl = URL.createObjectURL(highlightedPdfBlob);
+              console.log("[Chat] highlightedPdfUrl", highlightedPdfUrl)
+              // Add source with highlighted PDF
+              const highlightedSources = [{
+                id: uuidv4(),
+                name: `${files[0].name} (Highlighted)`,
+                uploadTime: new Date(),
+                url: highlightedPdfUrl,
+              }];
+                // Clean up original PDF URL
+              if (originalSources[0].url.startsWith('blob:')) {
+                  URL.revokeObjectURL(originalSources[0].url);
+              }
+
+              addSources(highlightedSources, true);
+              setSelectedSource(highlightedSources[0]);
+            } catch (error) {
+              console.error('Error highlighting PDF:', error);
+              // Fall back to original PDF if highlighting fails
+              const newSources = files.map(file => ({
+                id: uuidv4(),
+                name: file.name,
+                uploadTime: new Date(),
+                url: URL.createObjectURL(file),
               }));
+              addSources(newSources);
+              setSelectedSource(newSources[0]);
+            }
+
+
+                        // First create array for all clauses (for chart)
+            const allClausesForChart = analysisResult.result.map((clause: any)  => ({
+                clause: clause.clause_text,
+                finalText: clause.predicted_label,
+                riskScore: clause.final_risk * 100,
+                x: clause.x_coordinate ,
+                y: clause.y_coordinate ,
+                riskLevel: clause.risk_level
+            }));
+            const redFlagClauses = analysisResult.result
+              .filter((clause: any) => clause.risk_level === "Medium" || clause.risk_level === "High")
+              .sort((a: any, b: any) => {
+                if (a.risk_level !== b.risk_level) {
+                  return a.risk_level === "High" ? -1 : 1;
+                }
+                return b.final_risk - a.final_risk;
+              })
+              .map((clause: any) => ({
+                clause: clause.clause_text,
+                finalText: clause.predicted_label,
+                riskScore: clause.final_risk * 100,
+                x: clause.x_coordinate,
+                y: clause.y_coordinate,
+                riskLevel: clause.risk_level
+              }));
+
 
             console.log("[Chat] redFlagClauses", redFlagClauses);
             setRedFlagClauses(redFlagClauses);
+            setAllClausesForChart(allClausesForChart);
         // Create a formatted message
         // Updated message format with HTML for styling
 const message = `
               <div class="${styles.analysisResults}">
                 <h1 class="${styles.analysisHeading}">Red Flag Clauses</h1>
                 <div class="${styles.analysisContent}">
-                  ${redFlagClauses.map((clause, index) => 
+                  ${redFlagClauses.map((clause: any, index: any) => 
                     `<div class="${styles.listItem}">
-                      <strong>Clause:</strong> ${clause.clause}<br/>
-                      <strong>Risk Score:</strong> ${clause.riskScore}
+                      <div class ="${styles.clauseLabel} ${clause.riskLevel === 'High' ? styles.highRiskLabel : styles.mediumRiskLabel}">Clause:</div> 
+                      <div class ="${styles.clauseText}">${clause.clause}</div>
+                      <div class ="${styles.riskLabel}">Risk Score: ${clause.riskScore.toFixed(2)} % </div>
                     </div>`
                   ).join('')}
                 </div>
@@ -294,18 +384,19 @@ const message = `
           } catch (error) {
             clearInterval(pollInterval);
             console.error('Error polling status:', error);
+            setIsChartLoading(false);
           }
         }, 1000); // Poll every second
 
         // Add sources to context
-        const newSources = files.map(file => ({
-          id: uuidv4(),
-          name: file.name,
-          uploadTime: new Date(),
-          url: URL.createObjectURL(file),
-        }));
-        addSources(newSources);
-        setSelectedSource(newSources[0]);
+        // const newSources = files.map(file => ({
+        //   id: uuidv4(),
+        //   name: file.name,
+        //   uploadTime: new Date(),
+        //   url: URL.createObjectURL(file),
+        // }));
+        // addSources(newSources);
+        // setSelectedSource(newSources[0]);
 
       } catch (error) {
         console.error('Error processing file:', error);
@@ -324,14 +415,38 @@ const message = `
   const handleAskAI = () => {
     router.push('/ask-ai');
   }
-
+  if (!hasUploaded) {
+    return (
+      <div className={` flex items-center justify-center h-full`}>
+        <div className={`${styles.customBorder} ${styles.buttonWrapper}`}>
+        <input
+          type="file"
+          ref={fileInputRef}
+          onChange={handleFileChange}
+          className="hidden"
+          multiple
+          accept="application/pdf"
+        />
+        <Button 
+          variant="default" 
+          size="lg" 
+          onClick={handleFileClick}
+          className="text-xl p-8"
+        >
+          Upload your PDF
+        </Button>
+        </div>
+      </div>
+    );
+  }
  return (
     <div className={styles.chatContainer}>
       <div className="h-full flex">
         {/* Chat Section */}
         <div className={selectedSource ? "w-1/2 flex flex-col" : "w-full flex flex-col"}>
+        <div className={styles.contentWrapper}>  
           {/* Messages and Input Container */}
-          <div className="flex flex-col h-full">
+          {/* <div className="flex flex-col h-full">  */}
             {/* Messages Container */}
             <div className={`${styles.messagesContainer} flex-1 overflow-y-auto`}>
               {messages.map((message, index) => (
@@ -362,10 +477,10 @@ const message = `
                               /> 
                             ) : (
                               <div 
-                               className={styles.typewriterContainer}
-                               dangerouslySetInnerHTML={{
+                              className={styles.typewriterContainer}
+                              dangerouslySetInnerHTML={{
                                 __html: message.text
-                               }}
+                              }}
                               /> 
                             )
                           ) : (
@@ -404,53 +519,19 @@ const message = `
               <div ref={messagesEndRef} />
             </div>
                     {/* Render the Chart if there are red flag clauses */}
-          {redFlagClauses.length > 0 && (
-            <div className={styles.chartContainer}>
-              <RedFlagChart data={redFlagClauses} />
-            </div>
-          )}
-
-            {/* Input Container */}
-            <div className={`${styles.inputContainer} bg-background`}>
-              <input
-                type="file"
-                ref={fileInputRef}
-                onChange={handleFileChange}
-                className="hidden"
-                multiple
-                accept="application/pdf"
-              />
-              <div className="flex items-center justify-between w-full gap-3 ">
-              <Button 
-                variant="ghost"
-                size="icon"
-                className={styles.attachButton}
-                onClick={handleFileClick}
-              >
-                <Files className="h-4 w-4" /> Upload Document
-              </Button>
-
-              {selectedFiles.length > 0 && (
-                <Button 
-                  variant="ghost"
-                  size="icon"
-                  className={styles.deleteButton}
-                  onClick={handleClearFiles}
-                >
-                  {/* <Trash2 className="h-4 w-4 text-red-500" /> */}
-                </Button>
-              )}
-              
-        
-              <Button 
-                onClick={handleAskAI}
-                className={styles.askAIButton}
-                variant="default"
-              >
-                {/* <SendHorizontal className="h-4 w-4 text-white" /> */}
-                Ask AI
-              </Button></div> 
-            </div>
+          {/* Chart Section */}
+          <div className={styles.chartSection}>
+            {isChartLoading ? (
+              <div className={styles.chartLoading}>
+                <div className={styles.loadingSpinner}></div>
+                <p>Generating analysis chart...</p>
+              </div>
+            ) : redFlagClauses.length > 0 && (
+              <div className={styles.chartContainer}>
+                <RedFlagChart data={allClausesForChart} />
+              </div>
+            )}
+          </div>
           </div>
         </div>
 

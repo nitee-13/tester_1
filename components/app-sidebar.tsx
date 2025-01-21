@@ -27,7 +27,7 @@ import {
   SidebarHeader,
   SidebarRail,
 } from "@/components/ui/sidebar"
-
+import {usePathname} from "next/navigation"
 import { useSources } from "@/context/SourcesContext"
 
 //Devinf NavType 
@@ -69,6 +69,7 @@ const data = {
     {      
       title: "Dashboard",
       url: "/chat",
+      isActive: true,
       icon: Bot,
     },
     {      
@@ -79,7 +80,7 @@ const data = {
       items: [
         {
           title: "History",
-          url: "/chat",
+          url: "/",
         },
         {
           title: "Starred",
@@ -175,12 +176,35 @@ const data = {
     },
   ],
 }
+
+// Here we grab the current route from the App Router (next/navigation)
+function useActiveRouteNavItems(navItems: NavItemType[]) {
+  const pathname = usePathname();
+
+  return React.useMemo(() => {
+    return navItems.map(item => {
+      const active = item.url === pathname;
+      return {
+        ...item,
+        isActive: active,
+        // if sub-items exist, set isSelected / isActive individually
+        items: item.items?.map(subItem => {
+          const subActive = subItem.url === pathname;
+          return {
+            ...subItem,
+            isSelected: subActive,
+          };
+        }),
+      };
+    });
+  }, [navItems, pathname]);
+}
 // Function to create the sources navigation item
 const createSourcesNavItem = (sources: any[], selectedSource: any, onSourceClick: (source: any) => void) => ({
   title: "Sources",
   url: "#",
   icon: FileText,
-  isActive: true,
+  isActive: false,
   items: sources.map(source => ({
     title: source.name,
     url: "#",
@@ -212,14 +236,16 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   console.log("[AppSidebar] combinedNavItems", [chatItem, sourcesItem, ...otherItems])
     
   return chatItem ? [chatItem, sourcesItem, ...otherItems] : [sourcesItem, ...otherItems]
-  }, [sources, selectedSource]) // Recreate when sources change
+  }, [sources, selectedSource]) 
+  const finalNavItems = useActiveRouteNavItems(combinedNavItems);
+// Recreate when sources change
   return (
     <Sidebar collapsible="offcanvas" {...props}>
       <SidebarHeader>
         <TeamSwitcher teams={data.teams}   />
       </SidebarHeader>
       <SidebarContent>
-        <NavMain items={combinedNavItems} />
+        <NavMain items={finalNavItems} />
         <NavProjects projects={data.projects} />
       </SidebarContent>
       <SidebarFooter>

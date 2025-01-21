@@ -28,8 +28,8 @@ export const SourcesProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const [sources, setSources] = useState<Source[]>([]);
   const [selectedSource, setSelectedSource] = useState<Source | null>(null);
 
-  const addSources = (newSources: Source[]) => {
-    setSources((prev) => [...prev, ...newSources]);
+  const addSources = (newSources: Source[], replace: boolean = false) => {
+    setSources((prev) => replace ? newSources : [...prev, ...newSources]);
   };
 
   return (

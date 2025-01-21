@@ -1,4 +1,6 @@
-const API_BASE_URL = 'http://192.168.0.133:8000'; // adjust to your backend URL
+const API_BASE_URL = 'http://0.0.0.0:8000';
+
+const HIGHLIGHT_API_URL = 'http://127.0.0.1:8001'// adjust to your backend URL
 
 export const analyzeContract = async (file: File) => {
   const formData = new FormData();
@@ -31,3 +33,21 @@ export const getAnalysisResult = async (jobId: string) => {
   }
   return await response.json();
 }; 
+
+export const highlightPdfClauses = async(file: File, sentences: string[]) => { 
+  const formData = new FormData();
+  formData.append('file', file);
+  sentences.forEach(sentence => {
+    formData.append('sentences', sentence);
+  });
+
+  const response = await fetch(`${HIGHLIGHT_API_URL}/highlight-pdf/`, {
+    method: 'POST',
+    body: formData,
+  });
+  if(!response.ok) { 
+    throw new Error('Failed to highlight pdf clauses');
+  }
+  return await response.blob();
+
+}
