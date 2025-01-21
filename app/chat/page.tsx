@@ -261,7 +261,7 @@ export default function Chat() {
               throw new Error("Invalid API response: 'result' field is missing.");
             }
             console.log("[Chat] analysisResult", analysisResult)
-            const clauseTexts = analysisResult.result.map(clause => clause.clause_text);
+            const clauseTexts = analysisResult.result.map((clause: any) => clause.clause_text);
             console.log("[Chat] clauseTexts", clauseTexts)
 
             try {
@@ -282,7 +282,7 @@ export default function Chat() {
                   URL.revokeObjectURL(originalSources[0].url);
               }
 
-              addSources(highlightedSources);
+              addSources(highlightedSources, true);
               setSelectedSource(highlightedSources[0]);
             } catch (error) {
               console.error('Error highlighting PDF:', error);
@@ -299,23 +299,23 @@ export default function Chat() {
 
 
                         // First create array for all clauses (for chart)
-            const allClausesForChart = analysisResult.result.map(clause => ({
+            const allClausesForChart = analysisResult.result.map((clause: any)  => ({
                 clause: clause.clause_text,
                 finalText: clause.predicted_label,
                 riskScore: clause.final_risk * 100,
-                x: clause.probability ,
-                y: clause.financial_impact ,
+                x: clause.x_coordinate ,
+                y: clause.y_coordinate ,
                 riskLevel: clause.risk_level
             }));
             const redFlagClauses = analysisResult.result
-              .filter(clause => clause.risk_level === "Medium" || clause.risk_level === "High")
-              .sort((a, b) => {
+              .filter((clause: any) => clause.risk_level === "Medium" || clause.risk_level === "High")
+              .sort((a: any, b: any) => {
                 if (a.risk_level !== b.risk_level) {
                   return a.risk_level === "High" ? -1 : 1;
                 }
                 return b.final_risk - a.final_risk;
               })
-              .map(clause => ({
+              .map((clause: any) => ({
                 clause: clause.clause_text,
                 finalText: clause.predicted_label,
                 riskScore: clause.final_risk * 100,
@@ -334,7 +334,7 @@ const message = `
               <div class="${styles.analysisResults}">
                 <h1 class="${styles.analysisHeading}">Red Flag Clauses</h1>
                 <div class="${styles.analysisContent}">
-                  ${redFlagClauses.map((clause, index) => 
+                  ${redFlagClauses.map((clause: any, index: any) => 
                     `<div class="${styles.listItem}">
                       <div class ="${styles.clauseLabel} ${clause.riskLevel === 'High' ? styles.highRiskLabel : styles.mediumRiskLabel}">Clause:</div> 
                       <div class ="${styles.clauseText}">${clause.clause}</div>
@@ -477,10 +477,10 @@ const message = `
                               /> 
                             ) : (
                               <div 
-                               className={styles.typewriterContainer}
-                               dangerouslySetInnerHTML={{
+                              className={styles.typewriterContainer}
+                              dangerouslySetInnerHTML={{
                                 __html: message.text
-                               }}
+                              }}
                               /> 
                             )
                           ) : (

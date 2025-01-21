@@ -1,12 +1,16 @@
 .chatContainer {
   @apply flex flex-col h-full w-full;
+  padding:0rem;
+  margin:0;
 }
 .contentWrapper {
   @apply flex flex-col h-full max-w-4xl mx-auto w-full;
 }
 .chartSection {
-  @apply w-full flex justify-center items-center my-4;
+  @apply   flex justify-center items-center my-4;
   min-height: 400px; /* Adjust based on your needs */
+  padding:0rem;
+  margin:0;
 }
 
 .chartContainer {

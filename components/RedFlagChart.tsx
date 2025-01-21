@@ -1,6 +1,6 @@
 import React from 'react';
 import { Scatter } from 'react-chartjs-2';
-import { Chart as ChartJS, ScatterController, LinearScale, PointElement, Tooltip, Legend, Title } from 'chart.js';
+import { Chart as ChartJS, ScatterController, LinearScale, PointElement, Tooltip, Legend, Title, ChartOptions } from 'chart.js';
 
 ChartJS.register(
   ScatterController,
@@ -57,7 +57,7 @@ const RedFlagChart: React.FC<RedFlagChartProps> = ({ data }) => {
     ],
   };
 
-  const options = {
+  const options : ChartOptions<'scatter'> = {
     responsive: true,
     plugins: {
       title: {
@@ -97,26 +97,56 @@ const RedFlagChart: React.FC<RedFlagChartProps> = ({ data }) => {
     },
     scales: {
       x: {
+
         title: {
           display: true,
           text: 'Probability',
         },
+        border: {
+          dash: [4, 4],
+          display: true,
+        },
         grid: {
-                      color: 'rgba(255, 255, 255, 0.1)', // lighter grid lines
+          color: '#aaa',
+          tickColor: '#000', // for the tick mark
+          tickBorderDash: [2, 3], // also for the tick, if long enough
+          tickLength: 10, // just to see the dotted line
+          tickWidth: 2,
+          offset: true,
+          drawTicks: true, // true is default 
+          drawOnChartArea: true // true is default 
+          // color: 'rgba(255, 255, 255, 0.1)',
+                       // lighter grid lines
         },
         backgroundColor: 'rgba(128, 128, 128, 0.2)',
-        position: 'center'
+        position: 'bottom',
+        min: 0,
+        suggestedMax: 10,
       },
       y: {
         title: {
           display: true,
           text: 'Financial Impact',
         },
+        border:{
+          dash: [5, 5],
+          display: true,
+        },
         grid: {
-          color: 'rgba(255, 255, 255, 0.1)', // lighter grid lines
+          // color: 'rgba(255, 255, 255, 0.1)', // lighter grid lines
+          color: '#aaa',
+          tickColor: '#000', // for the tick mark
+          tickBorderDash: [2, 3], // also for the tick, if long enough
+          tickLength: 10, // just to see the dotted line
+          tickWidth: 2,
+          offset: true,
+          drawTicks: true, // true is default 
+          drawOnChartArea: true
         },
         backgroundColor: 'rgba(128, 128, 128, 0.2)',
-        position: 'center'
+        position: 'left',
+        min: 0,
+        suggestedMax: 10,
       },
     },
     backgroundColor: 'rgba(128, 128, 128, 0.2)',
